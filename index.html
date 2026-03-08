@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKU Analyzer Pro Max</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body class="">
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <nav class="app-nav">
+        <div class="nav-container">
+            <button class="nav-tab active" data-tab="analyzer">
+                <i data-lucide="search-check"></i>
+                Status Analyzer
+            </button>
+            <button class="nav-tab" data-tab="merger">
+                <i data-lucide="merge"></i>
+                SKU Merger
+            </button>
+            <button class="nav-tab" data-tab="matcher">
+                <i data-lucide="layers"></i>
+                Option Matcher
+            </button>
+            <button class="nav-tab" data-tab="coo">
+                <i data-lucide="globe"></i>
+                COO Checker
+            </button>
+            <button class="nav-tab" data-tab="tag">
+                <i data-lucide="list-checks"></i>
+                Tag Matcher
+            </button>
+            <button class="nav-tab" data-tab="exclusion">
+                <i data-lucide="shield-alert"></i>
+                Exclusion Checker
+            </button>
+            <button id="themeToggle" class="theme-toggle-btn" title="Toggle Light/Dark Mode">
+                <i data-lucide="moon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <main class="app-container">
+        <!-- Tab: Status Analyzer -->
+        <div id="analyzerTab" class="tab-content active">
+            <header class="app-header">
+                <div class="logo">
+                    <span class="icon-container">
+                        <i data-lucide="clipboard-check"></i>
+                    </span>
+                    <h1>Status <span class="gradient-text">Analyzer</span></h1>
+                </div>
+                <p class="subtitle">Analyze status pairs and cross-reference consolidation records.</p>
+            </header>
+
+            <div class="main-grid">
+                <section class="left-col">
+                    <div class="glass-card mb-2">
+                        <div class="header-title mb-1">
+                            <i data-lucide="database"></i>
+                            <h3>1. Consolidation File</h3>
+                        </div>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="masterFileInput" accept=".csv, .xlsx, .xls" />
+                            <label for="masterFileInput" class="file-label" id="fileLabel">
+                                <i data-lucide="upload-cloud"></i>
+                                <span>Choose CSV File</span>
+                            </label>
+
+                            <div id="fileInfoCard" class="file-info-card">
+                                <div class="file-icon-box">
+                                    <i data-lucide="file-spreadsheet"></i>
+                                </div>
+                                <div class="file-details">
+                                    <span id="displayFileName" class="file-name">filename.csv</span>
+                                    <span id="displayFileMeta" class="file-meta">0 records</span>
+                                </div>
+                                <button id="changeFileBtn" class="change-file-btn">Change</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <div class="card-header mb-1"
+                            style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div class="header-title">
+                                <i data-lucide="list-tree"></i>
+                                <h2>2. Input Data</h2>
+                            </div>
+                            <div class="mode-toggles"
+                                style="display: flex; gap: 0.5rem; background: #f1f5f9; padding: 0.25rem; border-radius: 8px;">
+                                <button id="modeUploadBtn" class="mode-btn active"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">File</button>
+                                <button id="modePasteBtn" class="mode-btn"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">Paste</button>
+                            </div>
+                        </div>
+
+                        <!-- Mode: Upload -->
+                        <div id="statusFileUploadArea" class="file-upload-wrapper mb-1">
+                            <input type="file" id="statusDataFileInput" accept=".csv, .xlsx, .xls" />
+                            <label for="statusDataFileInput" class="file-label" id="statusFileLabel">
+                                <i data-lucide="file-up"></i>
+                                <span>Upload 5-Column CSV</span>
+                            </label>
+                            <div id="statusFileInfoCard" class="file-info-card">
+                                <div class="file-icon-box" style="background: var(--primary);">
+                                    <i data-lucide="file-text"></i>
+                                </div>
+                                <div class="file-details">
+                                    <span id="stFileName" class="file-name">filename.csv</span>
+                                    <span id="stFileMeta" class="file-meta">Ready to analyze</span>
+                                </div>
+                                <button id="changeStFileBtn" class="change-file-btn">Change</button>
+                            </div>
+                        </div>
+
+                        <!-- Mode: Paste -->
+                        <div id="statusPasteArea" style="display: none;">
+                            <textarea id="statusInput" placeholder="SKU1    SKU2    Stt1    Stt2    TargetBTS"
+                                style="height: 250px;"></textarea>
+                        </div>
+
+                        <div class="controls">
+                            <button id="clearAnalyzerBtn" class="btn secondary">
+                                <i data-lucide="trash-2"></i>
+                                Clear
+                            </button>
+                            <button id="processAnalyzerBtn" class="btn primary">
+                                <i data-lucide="play"></i>
+                                Analyze Data
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="output-section">
+                    <div class="output-header">
+                        <h2>Analysis Results</h2>
+                        <div class="header-actions">
+                            <button id="downloadAnalyzerBtn" class="btn primary-outline btn-sm" style="display: none;">
+                                <i data-lucide="download"></i>
+                                Download CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div id="analyzerResultsContainer" class="results-grid">
+                        <div class="empty-state">
+                            <p>Results will appear here side-by-side with your input.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Tab: SKU Merger -->
+        <div id="mergerTab" class="tab-content">
+            <header class="app-header">
+                <div class="logo">
+                    <span class="icon-container">
+                        <i data-lucide="package-search"></i>
+                    </span>
+                    <h1>SKU Merger <span class="gradient-text">Pro</span></h1>
+                </div>
+                <p class="subtitle">Intelligent SKU consolidation with connected-component logic.</p>
+            </header>
+
+            <div class="main-grid">
+                <section class="input-section">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <div class="header-title">
+                                <i data-lucide="clipboard-list"></i>
+                                <h2>Paste Data</h2>
+                            </div>
+                            <span class="badge">Supports Excel/Sheets Tabs</span>
+                        </div>
+                        <textarea id="skuInput"
+                            placeholder="Paste your SKU columns here...&#10;Example:&#10;SKU1    SKU2&#10;SKU3    SKU2"></textarea>
+                        <div class="controls">
+                            <button id="clearBtn" class="btn secondary">
+                                <i data-lucide="trash-2"></i>
+                                Clear
+                            </button>
+                            <button id="processBtn" class="btn primary">
+                                <i data-lucide="zap"></i>
+                                Process SKUs
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="output-section">
+                    <div class="output-header">
+                        <h2>Merged Results</h2>
+                        <div class="header-actions">
+                            <div id="stats" class="stats">No results yet</div>
+                            <button id="downloadBtn" class="btn primary-outline btn-sm" style="display: none;">
+                                <i data-lucide="download"></i>
+                                Download CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div id="resultsContainer" class="results-grid">
+                        <div class="empty-state">
+                            <p>Paste data above and click "Process" to see results.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Tab: Option Matcher -->
+        <div id="matcherTab" class="tab-content">
+            <header class="app-header">
+                <div class="logo">
+                    <span class="icon-container">
+                        <i data-lucide="layers"></i>
+                    </span>
+                    <h1>Option <span class="gradient-text">Matcher</span></h1>
+                </div>
+                <p class="subtitle">Quickly match SKU options with supplier records.</p>
+            </header>
+
+            <div class="matcher-layout">
+                <div class="matcher-sidebar">
+                    <div class="premium-card mb-2">
+                        <div class="header-title mb-1" style="margin-bottom: 1.5rem;">
+                            <i data-lucide="database"></i>
+                            <h3>1. Data CSV</h3>
+                        </div>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="matcherCsvInput" accept=".csv, .xlsx, .xls" />
+                            <label for="matcherCsvInput" class="file-label" id="matcherCsvLabel">
+                                <i data-lucide="upload-cloud"></i>
+                                <span>Upload Supplier Records</span>
+                            </label>
+                            <div id="matcherCsvInfo" class="file-info-card">
+                                <div class="file-icon-box">
+                                    <i data-lucide="file-spreadsheet"></i>
+                                </div>
+                                <div class="file-details">
+                                    <span id="matcherCsvName" class="file-name">filename.csv</span>
+                                    <span id="matcherCsvMeta" class="file-meta">0 records</span>
+                                </div>
+                                <button id="changeMatcherCsvBtn" class="change-file-btn">Change</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="premium-card mb-2">
+                        <div class="card-header mb-1" style="margin-bottom: 1.5rem;">
+                            <div class="header-title">
+                                <i data-lucide="layout-grid"></i>
+                                <h3>2. Input Selection</h3>
+                            </div>
+                            <div class="mode-toggles">
+                                <button id="matcherModeLookupBtn" class="mode-btn active">SKU Pairs</button>
+                                <button id="matcherModePasteBtn" class="mode-btn">Option</button>
+                            </div>
+                        </div>
+
+                        <!-- Mode: Lookup -->
+                        <div id="matcherLookupArea">
+                            <label class="input-label-premium">
+                                <i data-lucide="scan-barcode"></i>
+                                2 SKUs (Lookup Mode)
+                            </label>
+                            <textarea id="skuPairInput" class="premium-textarea"
+                                placeholder="Paste SKU pair here...&#10;Example: SKU-A  SKU-B"
+                                style="height: 180px;"></textarea>
+                        </div>
+
+                        <!-- Mode: Paste -->
+                        <div id="matcherPasteArea" style="display: none;">
+                            <div class="mb-1">
+                                <label class="input-label-premium">
+                                    <i data-lucide="type"></i>
+                                    SKU A Options
+                                </label>
+                                <textarea id="skuAInput" class="premium-textarea" style="height: 120px;"
+                                    placeholder="Paste SKU A options here...&#10;(Option Name, Part Number)"></textarea>
+                            </div>
+
+                            <div>
+                                <label class="input-label-premium">
+                                    <i data-lucide="type"></i>
+                                    SKU B Options
+                                </label>
+                                <textarea id="skuBInput" class="premium-textarea" style="height: 120px;"
+                                    placeholder="Paste SKU B options here...&#10;(Option Name, Part Number)"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="matcher-main">
+                    <div class="selection-container">
+                        <div class="premium-card">
+                            <div class="card-header" style="padding-bottom: 0.5rem;">
+                                <h3>Select SKU A Option</h3>
+                            </div>
+                            <div class="search-filter-wrapper mb-1">
+                                <i data-lucide="search" class="search-icon"></i>
+                                <input type="text" id="matcherSkuASearch" placeholder="Filter part numbers..."
+                                    class="subtle-search-input">
+                            </div>
+                            <div id="skuASelectArea" class="option-list">
+                                <p class="empty-text">Paste options to start</p>
+                            </div>
+                        </div>
+                        <div class="premium-card">
+                            <div class="card-header" style="padding-bottom: 0.5rem;">
+                                <h3>Select SKU B Option</h3>
+                            </div>
+                            <div class="search-filter-wrapper mb-1">
+                                <i data-lucide="search" class="search-icon"></i>
+                                <input type="text" id="matcherSkuBSearch" placeholder="Filter part numbers..."
+                                    class="subtle-search-input">
+                            </div>
+                            <div id="skuBSelectArea" class="option-list">
+                                <p class="empty-text">Paste options to start</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="results-container mt-2">
+                        <div class="premium-card">
+                            <div class="card-header">
+                                <div class="header-title">
+                                    <i data-lucide="table"></i>
+                                    <h2>Filtered Results</h2>
+                                </div>
+                            </div>
+                            <div id="matcherResultsContainer" class="table-scroll-wrapper">
+                                <div class="empty-state">
+                                    <p>Upload CSV and select options to see filtered data.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Tab: COO Checker -->
+        <div id="cooTab" class="tab-content">
+            <header class="app-header">
+                <div class="logo">
+                    <span class="icon-container">
+                        <i data-lucide="globe"></i>
+                    </span>
+                    <h1>COO <span class="gradient-text">Checker</span></h1>
+                </div>
+                <p class="subtitle">Check Country of Origin tags between SKU pairs.</p>
+            </header>
+
+            <div class="matcher-layout">
+                <div class="matcher-sidebar">
+                    <div class="premium-card mb-2">
+                        <div class="header-title mb-1" style="margin-bottom: 1.5rem;">
+                            <i data-lucide="database"></i>
+                            <h3>1. COO Data File</h3>
+                        </div>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="cooCsvInput" accept=".csv, .xlsx, .xls" />
+                            <label for="cooCsvInput" class="file-label" id="cooCsvLabel">
+                                <i data-lucide="upload-cloud"></i>
+                                <span>Upload COO Records</span>
+                            </label>
+                            <div id="cooCsvInfo" class="file-info-card">
+                                <div class="file-icon-box">
+                                    <i data-lucide="file-spreadsheet"></i>
+                                </div>
+                                <div class="file-details">
+                                    <span id="cooCsvName" class="file-name">filename.csv</span>
+                                    <span id="cooCsvMeta" class="file-meta">0 records</span>
+                                </div>
+                                <button id="changeCooCsvBtn" class="change-file-btn">Change</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="premium-card mb-2">
+                        <div class="header-title mb-1" style="margin-bottom: 1.5rem;">
+                            <i data-lucide="scan-barcode"></i>
+                            <h3>2. SKU Pairs</h3>
+                        </div>
+                        <textarea id="cooSkuPairInput" class="premium-textarea"
+                            placeholder="Paste SKU pairs here...&#10;SKU-A    SKU-B&#10;SKU-A, SKU-B"
+                            style="height: 250px;"></textarea>
+
+                        <div class="controls mt-1" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button id="clearCooBtn" class="btn secondary" style="flex: 1;">
+                                <i data-lucide="trash-2"></i>
+                                Clear
+                            </button>
+                            <button id="processCooBtn" class="btn primary" style="flex: 1;">
+                                <i data-lucide="play"></i>
+                                Analyze
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="matcher-main">
+                    <div class="results-container">
+                        <div class="premium-card">
+                            <div class="output-header">
+                                <div class="header-title">
+                                    <i data-lucide="table"></i>
+                                    <h2>Comparison Results</h2>
+                                </div>
+                                <div class="header-actions">
+                                    <button id="downloadCooBtn" class="btn primary-outline btn-sm"
+                                        style="display: none;">
+                                        <i data-lucide="download"></i>
+                                        Download CSV
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="cooResultsContainer" class="table-scroll-wrapper">
+                                <div class="empty-state">
+                                    <p>Upload data and paste SKUs to see differences.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Tab: Tag Matcher -->
+        <div id="tagTab" class="tab-content">
+            <header class="app-header">
+                <div class="logo">
+                    <span class="icon-container">
+                        <i data-lucide="list-checks"></i>
+                    </span>
+                    <h1>Tag <span class="gradient-text">Matcher</span></h1>
+                </div>
+                <p class="subtitle">Compare product tags and attributes between SKU pairs.</p>
+            </header>
+
+            <div class="matcher-layout">
+                <div class="matcher-sidebar">
+                    <div class="premium-card mb-2">
+                        <div class="header-title mb-1" style="margin-bottom: 1.5rem;">
+                            <i data-lucide="database"></i>
+                            <h3>1. Tag Data File</h3>
+                        </div>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="tagCsvInput" accept=".csv, .xlsx, .xls" />
+                            <label for="tagCsvInput" class="file-label" id="tagCsvLabel">
+                                <i data-lucide="upload-cloud"></i>
+                                <span>Upload Tag Records</span>
+                            </label>
+                            <div id="tagCsvInfo" class="file-info-card">
+                                <div class="file-icon-box">
+                                    <i data-lucide="file-spreadsheet"></i>
+                                </div>
+                                <div class="file-details">
+                                    <span id="tagCsvName" class="file-name">filename.csv</span>
+                                    <span id="tagCsvMeta" class="file-meta">0 records</span>
+                                </div>
+                                <button id="changeTagCsvBtn" class="change-file-btn">Change</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="premium-card mb-2">
+                        <div class="header-title mb-1" style="margin-bottom: 1.5rem;">
+                            <i data-lucide="scan-barcode"></i>
+                            <h3>2. SKU Pair</h3>
+                        </div>
+                        <textarea id="tagSkuPairInput" class="premium-textarea"
+                            placeholder="Paste 2 SKUs here...&#10;Example: SKU-A    SKU-B"
+                            style="height: 120px;"></textarea>
+
+                        <div class="controls mt-1" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button id="clearTagBtn" class="btn secondary"
+                                style="flex: 1; border-radius: 12px; height: 45px;">
+                                <i data-lucide="trash-2"></i>
+                                Clear All Inputs
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="premium-card mt-2">
+                        <div class="header-title mb-1">
+                            <i data-lucide="edit-3"></i>
+                            <h3>3. Manual Options (Optional)</h3>
+                        </div>
+                        <div style="display: grid; gap: 1rem;">
+                            <div>
+                                <label id="manualTagOptionALabel"
+                                    style="font-size: 0.75rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">SKU
+                                    A Options</label>
+                                <textarea id="manualTagOptionA" placeholder="Option 1 (Part Number)&#10;Option 2..."
+                                    style="height: 100px; margin-bottom: 0; font-size: 0.9rem;"></textarea>
+                            </div>
+                            <div>
+                                <label id="manualTagOptionBLabel"
+                                    style="font-size: 0.75rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">SKU
+                                    B Options</label>
+                                <textarea id="manualTagOptionB" placeholder="Option 1 (Part Number)&#10;Option 2..."
+                                    style="height: 100px; margin-bottom: 0; font-size: 0.9rem;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="matcher-main">
+                    <div class="control-center-bar">
+                        <div class="control-group">
+                            <i data-lucide="intersect" class="control-icon"></i>
+                            <div class="control-label">
+                                <h3>Shared Part Numbers Only</h3>
+                                <p>Only show part numbers common to both SKUs</p>
+                            </div>
+                        </div>
+                        <label class="premium-switch">
+                            <input type="checkbox" id="tagFilterOverlapBtn">
+                            <span class="switch-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="selection-grid mb-2"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="premium-card">
+                            <div class="header-title mb-1">
+                                <i data-lucide="check-circle"></i>
+                                <h3 id="tagSkuAHeader">Select SKU A Option</h3>
+                            </div>
+                            <div class="search-filter-wrapper mb-1">
+                                <i data-lucide="search" class="search-icon"></i>
+                                <input type="text" id="tagSkuASearch" placeholder="Filter part numbers..."
+                                    class="subtle-search-input">
+                            </div>
+                            <div id="tagSkuASelectArea" class="option-select-area">
+                                <p class="empty-text">Enter SKUs to see options</p>
+                            </div>
+                        </div>
+                        <div class="premium-card">
+                            <div class="header-title mb-1">
+                                <i data-lucide="check-circle"></i>
+                                <h3 id="tagSkuBHeader">Select SKU B Option</h3>
+                            </div>
+                            <div class="search-filter-wrapper mb-1">
+                                <i data-lucide="search" class="search-icon"></i>
+                                <input type="text" id="tagSkuBSearch" placeholder="Filter part numbers..."
+                                    class="subtle-search-input">
+                            </div>
+                            <div id="tagSkuBSelectArea" class="option-select-area">
+                                <p class="empty-text">Enter SKUs to see options</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="results-container">
+                        <div class="premium-card">
+                            <div class="output-header">
+                                <div class="header-title">
+                                    <i data-lucide="table"></i>
+                                    <h2>Tag Comparison</h2>
+                                </div>
+                                <div class="header-actions">
+                                    <div class="filter-group">
+                                        <button class="filter-btn active" data-filter="all">
+                                            <i data-lucide="layers"></i>
+                                            All
+                                        </button>
+                                        <button class="filter-btn" data-filter="false">
+                                            <i data-lucide="alert-circle"></i>
+                                            Only False
+                                        </button>
+                                        <button class="filter-btn" data-filter="true">
+                                            <i data-lucide="check-circle"></i>
+                                            Only True
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="tagResultsContainer" class="table-scroll-wrapper">
+                                <div class="empty-state">
+                                    <p>Upload tag data and select options to see comparison.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Tab: Exclusion Checker -->
+        <div id="exclusionTab" class="tab-content">
+            <header class="app-header">
+                <div class="logo">
+                    <span class="icon-container" style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);">
+                        <i data-lucide="shield-alert"></i>
+                    </span>
+                    <h1>Exclusion <span class="gradient-text"
+                            style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Checker</span>
+                    </h1>
+                </div>
+                <p class="subtitle">Identify SKUs with various exclusion and kit flags.</p>
+            </header>
+
+            <div class="main-grid">
+                <section class="left-col">
+                    <div class="glass-card mb-2">
+                        <div class="header-title mb-1">
+                            <i data-lucide="database"></i>
+                            <h3>1. Exclusion Database</h3>
+                        </div>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="exclusionCsvInput" accept=".csv, .xlsx, .xls" />
+                            <label for="exclusionCsvInput" class="file-label" id="exclusionCsvLabel">
+                                <i data-lucide="upload-cloud"></i>
+                                <span>Choose Exclusion File</span>
+                            </label>
+
+                            <div id="exclusionCsvInfo" class="file-info-card">
+                                <div class="file-icon-box" style="background: #ef4444;">
+                                    <i data-lucide="file-spreadsheet"></i>
+                                </div>
+                                <div class="file-details">
+                                    <span id="exdisplayFileName" class="file-name">filename.csv</span>
+                                    <span id="exdisplayFileMeta" class="file-meta">0 records</span>
+                                </div>
+                                <button id="changeExclusionCsvBtn" class="change-file-btn">Change</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <div class="card-header mb-1">
+                            <div class="header-title">
+                                <i data-lucide="list-tree"></i>
+                                <h2>2. SKU Pairs</h2>
+                            </div>
+                        </div>
+
+                        <textarea id="exclusionSkuInput" class="premium-textarea"
+                            placeholder="Paste SKU pairs here...&#10;Example:&#10;SKU1    SKU2&#10;SKU1    SKU3"
+                            style="height: 300px; margin-bottom: 1.5rem;"></textarea>
+
+                        <div class="controls">
+                            <button id="clearExclusionBtn" class="btn secondary">
+                                <i data-lucide="trash-2"></i>
+                                Clear
+                            </button>
+                            <button id="processExclusionBtn" class="btn primary"
+                                style="background: #ef4444; border-color: #ef4444;">
+                                <i data-lucide="play"></i>
+                                Analyze
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="output-section">
+                    <div class="output-header">
+                        <h2>Analysis Results</h2>
+                        <div class="header-actions">
+                            <button id="downloadExclusionBtn" class="btn primary-outline btn-sm" style="display: none;">
+                                <i data-lucide="download"></i>
+                                Download CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div id="exclusionResultsContainer" class="results-grid">
+                        <div class="empty-state">
+                            <p>Upload the exclusion database and paste SKUs to see results.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast" class="toast">Copied to clipboard!</div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
