@@ -456,39 +456,64 @@
             </header>
 
             <div class="matcher-layout">
-                <div class="matcher-sidebar">
-                    <div class="premium-card mb-2">
+                <div class="matcher-sidebar" id="tagMatcherSidebar">
+                    <div
+                        style="grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.5rem; padding: 0 0.5rem;">
+                        <span
+                            style="font-family: 'Outfit'; font-weight: 600; font-size: 1.1rem; color: var(--text-main);"><i
+                                data-lucide="settings-2"
+                                style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 0.5rem;"></i>Data
+                            & Options Setup</span>
+                        <button id="tagToggleInputsBtn" class="btn secondary"
+                            style="padding: 0.4rem 1rem; height: 40px; font-size: 0.85rem; border-radius: 10px;">
+                            <i data-lucide="chevron-up" id="tagToggleIcon"
+                                style="width: 16px; height: 16px; margin-right: 0.25rem;"></i>
+                            <span id="tagToggleText">Collapse Setup</span>
+                        </button>
+                    </div>
+                    <div class="premium-card" id="tagSection1">
                         <div class="header-title mb-1" style="margin-bottom: 1.5rem;">
                             <i data-lucide="database"></i>
                             <h3>1. Tag Data File</h3>
                         </div>
                         <div class="file-upload-wrapper">
-                            <input type="file" id="tagCsvInput" accept=".csv, .xlsx, .xls" />
+                            <input type="file" id="tagCsvInput" accept=".csv, .xlsx, .xls" multiple />
                             <label for="tagCsvInput" class="file-label" id="tagCsvLabel">
                                 <i data-lucide="upload-cloud"></i>
                                 <span>Upload Tag Records</span>
                             </label>
-                            <div id="tagCsvInfo" class="file-info-card">
-                                <div class="file-icon-box">
-                                    <i data-lucide="file-spreadsheet"></i>
+                            <div id="tagFileStatusArea" style="display: none; flex-direction: column; gap: 0.75rem;">
+                                <div id="tagCsvInfo" class="file-info-card" style="margin-bottom: 0;">
+                                    <div class="file-icon-box">
+                                        <i data-lucide="file-spreadsheet"></i>
+                                    </div>
+                                    <div class="file-details">
+                                        <span id="tagCsvName" class="file-name">filename.csv</span>
+                                        <span id="tagCsvMeta" class="file-meta">0 records</span>
+                                    </div>
                                 </div>
-                                <div class="file-details">
-                                    <span id="tagCsvName" class="file-name">filename.csv</span>
-                                    <span id="tagCsvMeta" class="file-meta">0 records</span>
+                                <div class="file-actions-row"
+                                    style="display: flex; gap: 0.75rem; justify-content: flex-end; align-items: center;">
+                                    <label for="tagCsvInput" class="append-file-btn"
+                                        title="Add more files to current data">
+                                        <i data-lucide="plus-circle"></i>
+                                        <span>Add More</span>
+                                    </label>
+                                    <button id="changeTagCsvBtn" class="change-file-btn danger"
+                                        title="Clear all data and start over">Reset All</button>
                                 </div>
-                                <button id="changeTagCsvBtn" class="change-file-btn">Change</button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="premium-card mb-2">
+                    <div class="premium-card" id="tagSection2">
                         <div class="header-title mb-1" style="margin-bottom: 1.5rem;">
                             <i data-lucide="scan-barcode"></i>
                             <h3>2. SKU Pair</h3>
                         </div>
                         <textarea id="tagSkuPairInput" class="premium-textarea"
                             placeholder="Paste 2 SKUs here...&#10;Example: SKU-A    SKU-B"
-                            style="height: 120px;"></textarea>
+                            style="height: 180px;"></textarea>
 
                         <div class="controls mt-1" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                             <button id="clearTagBtn" class="btn secondary"
@@ -499,25 +524,25 @@
                         </div>
                     </div>
 
-                    <div class="premium-card mt-2">
+                    <div class="premium-card" id="tagSection3">
                         <div class="header-title mb-1">
                             <i data-lucide="edit-3"></i>
                             <h3>3. Manual Options (Optional)</h3>
                         </div>
-                        <div style="display: grid; gap: 1rem;">
+                        <div class="manual-options-grid">
                             <div>
                                 <label id="manualTagOptionALabel"
-                                    style="font-size: 0.75rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">SKU
+                                    style="font-size: 0.9rem; font-weight: 800; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">SKU
                                     A Options</label>
                                 <textarea id="manualTagOptionA" placeholder="Option 1 (Part Number)&#10;Option 2..."
-                                    style="height: 100px; margin-bottom: 0; font-size: 0.9rem;"></textarea>
+                                    style="height: 180px; margin-bottom: 0; font-size: 0.9rem;"></textarea>
                             </div>
                             <div>
                                 <label id="manualTagOptionBLabel"
-                                    style="font-size: 0.75rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">SKU
+                                    style="font-size: 0.9rem; font-weight: 800; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">SKU
                                     B Options</label>
                                 <textarea id="manualTagOptionB" placeholder="Option 1 (Part Number)&#10;Option 2..."
-                                    style="height: 100px; margin-bottom: 0; font-size: 0.9rem;"></textarea>
+                                    style="height: 180px; margin-bottom: 0; font-size: 0.9rem;"></textarea>
                             </div>
                         </div>
                     </div>
@@ -538,157 +563,162 @@
                         </label>
                     </div>
 
-                    <div class="selection-grid mb-2"
-                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                        <div class="premium-card">
-                            <div class="header-title mb-1">
-                                <i data-lucide="check-circle"></i>
-                                <h3 id="tagSkuAHeader">Select SKU A Option</h3>
-                            </div>
-                            <div class="search-filter-wrapper mb-1">
-                                <i data-lucide="search" class="search-icon"></i>
-                                <input type="text" id="tagSkuASearch" placeholder="Filter part numbers..."
-                                    class="subtle-search-input">
-                            </div>
-                            <div id="tagSkuASelectArea" class="option-select-area">
-                                <p class="empty-text">Enter SKUs to see options</p>
-                            </div>
-                        </div>
-                        <div class="premium-card">
-                            <div class="header-title mb-1">
-                                <i data-lucide="check-circle"></i>
-                                <h3 id="tagSkuBHeader">Select SKU B Option</h3>
-                            </div>
-                            <div class="search-filter-wrapper mb-1">
-                                <i data-lucide="search" class="search-icon"></i>
-                                <input type="text" id="tagSkuBSearch" placeholder="Filter part numbers..."
-                                    class="subtle-search-input">
-                            </div>
-                            <div id="tagSkuBSelectArea" class="option-select-area">
-                                <p class="empty-text">Enter SKUs to see options</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="results-container">
-                        <div class="premium-card">
-                            <div class="output-header">
-                                <div class="header-title">
-                                    <i data-lucide="table"></i>
-                                    <h2>Tag Comparison</h2>
+                    <div class="tag-split-view">
+                        <div class="selection-grid" id="tagSelectionGrid"
+                            style="display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 0;">
+                            <div class="premium-card">
+                                <div class="header-title mb-1">
+                                    <i data-lucide="check-circle"></i>
+                                    <h3 id="tagSkuAHeader">Select SKU A Option</h3>
                                 </div>
-                                <div class="header-actions">
-                                    <div class="filter-group">
-                                        <button class="filter-btn active" data-filter="all">
-                                            <i data-lucide="layers"></i>
-                                            All
-                                        </button>
-                                        <button class="filter-btn" data-filter="false">
-                                            <i data-lucide="alert-circle"></i>
-                                            Only False
-                                        </button>
-                                        <button class="filter-btn" data-filter="true">
-                                            <i data-lucide="check-circle"></i>
-                                            Only True
-                                        </button>
+                                <div class="search-filter-wrapper mb-1">
+                                    <i data-lucide="search" class="search-icon"></i>
+                                    <input type="text" id="tagSkuASearch" placeholder="Filter part numbers..."
+                                        class="subtle-search-input">
+                                </div>
+                                <div id="tagSkuASelectArea" class="option-select-area"
+                                    style="max-height: 350px; overflow-y: auto;">
+                                    <p class="empty-text">Enter SKUs to see options</p>
+                                </div>
+                            </div>
+                            <div class="premium-card">
+                                <div class="header-title mb-1">
+                                    <i data-lucide="check-circle"></i>
+                                    <h3 id="tagSkuBHeader">Select SKU B Option</h3>
+                                </div>
+                                <div class="search-filter-wrapper mb-1">
+                                    <i data-lucide="search" class="search-icon"></i>
+                                    <input type="text" id="tagSkuBSearch" placeholder="Filter part numbers..."
+                                        class="subtle-search-input">
+                                </div>
+                                <div id="tagSkuBSelectArea" class="option-select-area"
+                                    style="max-height: 350px; overflow-y: auto;">
+                                    <p class="empty-text">Enter SKUs to see options</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="results-container">
+                            <div class="premium-card">
+                                <div class="output-header">
+                                    <div class="header-title">
+                                        <i data-lucide="table"></i>
+                                        <h2>Tag Comparison</h2>
+                                    </div>
+                                    <div class="header-actions">
+                                        <div class="filter-group">
+                                            <button class="filter-btn active" data-filter="all">
+                                                <i data-lucide="layers"></i>
+                                                All
+                                            </button>
+                                            <button class="filter-btn" data-filter="false">
+                                                <i data-lucide="alert-circle"></i>
+                                                Only False
+                                            </button>
+                                            <button class="filter-btn" data-filter="true">
+                                                <i data-lucide="check-circle"></i>
+                                                Only True
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="tagResultsContainer" class="table-scroll-wrapper">
+                                    <div class="empty-state">
+                                        <p>Upload tag data and select options to see comparison.</p>
                                     </div>
                                 </div>
                             </div>
-                            <div id="tagResultsContainer" class="table-scroll-wrapper">
-                                <div class="empty-state">
-                                    <p>Upload tag data and select options to see comparison.</p>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <!-- Tab: Exclusion Checker -->
-        <div id="exclusionTab" class="tab-content">
-            <header class="app-header">
-                <div class="logo">
-                    <span class="icon-container" style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);">
-                        <i data-lucide="shield-alert"></i>
-                    </span>
-                    <h1>Exclusion <span class="gradient-text"
-                            style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Checker</span>
-                    </h1>
+            <!-- Tab: Exclusion Checker -->
+            <div id="exclusionTab" class="tab-content">
+                <header class="app-header">
+                    <div class="logo">
+                        <span class="icon-container"
+                            style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);">
+                            <i data-lucide="shield-alert"></i>
+                        </span>
+                        <h1>Exclusion <span class="gradient-text"
+                                style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Checker</span>
+                        </h1>
+                    </div>
+                    <p class="subtitle">Identify SKUs with various exclusion and kit flags.</p>
+                </header>
+
+                <div class="main-grid">
+                    <section class="left-col">
+                        <div class="glass-card mb-2">
+                            <div class="header-title mb-1">
+                                <i data-lucide="database"></i>
+                                <h3>1. Exclusion Database</h3>
+                            </div>
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="exclusionCsvInput" accept=".csv, .xlsx, .xls" />
+                                <label for="exclusionCsvInput" class="file-label" id="exclusionCsvLabel">
+                                    <i data-lucide="upload-cloud"></i>
+                                    <span>Choose Exclusion File</span>
+                                </label>
+
+                                <div id="exclusionCsvInfo" class="file-info-card">
+                                    <div class="file-icon-box" style="background: #ef4444;">
+                                        <i data-lucide="file-spreadsheet"></i>
+                                    </div>
+                                    <div class="file-details">
+                                        <span id="exdisplayFileName" class="file-name">filename.csv</span>
+                                        <span id="exdisplayFileMeta" class="file-meta">0 records</span>
+                                    </div>
+                                    <button id="changeExclusionCsvBtn" class="change-file-btn">Change</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card">
+                            <div class="card-header mb-1">
+                                <div class="header-title">
+                                    <i data-lucide="list-tree"></i>
+                                    <h2>2. SKU Pairs</h2>
+                                </div>
+                            </div>
+
+                            <textarea id="exclusionSkuInput" class="premium-textarea"
+                                placeholder="Paste SKU pairs here...&#10;Example:&#10;SKU1    SKU2&#10;SKU1    SKU3"
+                                style="height: 300px; margin-bottom: 1.5rem;"></textarea>
+
+                            <div class="controls">
+                                <button id="clearExclusionBtn" class="btn secondary">
+                                    <i data-lucide="trash-2"></i>
+                                    Clear
+                                </button>
+                                <button id="processExclusionBtn" class="btn primary"
+                                    style="background: #ef4444; border-color: #ef4444;">
+                                    <i data-lucide="play"></i>
+                                    Analyze
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="output-section">
+                        <div class="output-header">
+                            <h2>Analysis Results</h2>
+                            <div class="header-actions">
+                                <button id="downloadExclusionBtn" class="btn primary-outline btn-sm"
+                                    style="display: none;">
+                                    <i data-lucide="download"></i>
+                                    Download CSV
+                                </button>
+                            </div>
+                        </div>
+                        <div id="exclusionResultsContainer" class="results-grid">
+                            <div class="empty-state">
+                                <p>Upload the exclusion database and paste SKUs to see results.</p>
+                            </div>
+                        </div>
+                    </section>
                 </div>
-                <p class="subtitle">Identify SKUs with various exclusion and kit flags.</p>
-            </header>
-
-            <div class="main-grid">
-                <section class="left-col">
-                    <div class="glass-card mb-2">
-                        <div class="header-title mb-1">
-                            <i data-lucide="database"></i>
-                            <h3>1. Exclusion Database</h3>
-                        </div>
-                        <div class="file-upload-wrapper">
-                            <input type="file" id="exclusionCsvInput" accept=".csv, .xlsx, .xls" />
-                            <label for="exclusionCsvInput" class="file-label" id="exclusionCsvLabel">
-                                <i data-lucide="upload-cloud"></i>
-                                <span>Choose Exclusion File</span>
-                            </label>
-
-                            <div id="exclusionCsvInfo" class="file-info-card">
-                                <div class="file-icon-box" style="background: #ef4444;">
-                                    <i data-lucide="file-spreadsheet"></i>
-                                </div>
-                                <div class="file-details">
-                                    <span id="exdisplayFileName" class="file-name">filename.csv</span>
-                                    <span id="exdisplayFileMeta" class="file-meta">0 records</span>
-                                </div>
-                                <button id="changeExclusionCsvBtn" class="change-file-btn">Change</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="glass-card">
-                        <div class="card-header mb-1">
-                            <div class="header-title">
-                                <i data-lucide="list-tree"></i>
-                                <h2>2. SKU Pairs</h2>
-                            </div>
-                        </div>
-
-                        <textarea id="exclusionSkuInput" class="premium-textarea"
-                            placeholder="Paste SKU pairs here...&#10;Example:&#10;SKU1    SKU2&#10;SKU1    SKU3"
-                            style="height: 300px; margin-bottom: 1.5rem;"></textarea>
-
-                        <div class="controls">
-                            <button id="clearExclusionBtn" class="btn secondary">
-                                <i data-lucide="trash-2"></i>
-                                Clear
-                            </button>
-                            <button id="processExclusionBtn" class="btn primary"
-                                style="background: #ef4444; border-color: #ef4444;">
-                                <i data-lucide="play"></i>
-                                Analyze
-                            </button>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="output-section">
-                    <div class="output-header">
-                        <h2>Analysis Results</h2>
-                        <div class="header-actions">
-                            <button id="downloadExclusionBtn" class="btn primary-outline btn-sm" style="display: none;">
-                                <i data-lucide="download"></i>
-                                Download CSV
-                            </button>
-                        </div>
-                    </div>
-                    <div id="exclusionResultsContainer" class="results-grid">
-                        <div class="empty-state">
-                            <p>Upload the exclusion database and paste SKUs to see results.</p>
-                        </div>
-                    </div>
-                </section>
             </div>
-        </div>
     </main>
 
     <div id="toast" class="toast">Copied to clipboard!</div>

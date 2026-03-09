@@ -1466,6 +1466,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagCsvInput = document.getElementById('tagCsvInput');
     const tagCsvLabel = document.getElementById('tagCsvLabel');
     const tagCsvInfo = document.getElementById('tagCsvInfo');
+    const tagFileStatusArea = document.getElementById('tagFileStatusArea');
     const tagCsvName = document.getElementById('tagCsvName');
     const tagCsvMeta = document.getElementById('tagCsvMeta');
     const changeTagCsvBtn = document.getElementById('changeTagCsvBtn');
@@ -1483,6 +1484,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagSkuASearch = document.getElementById('tagSkuASearch');
     const tagSkuBSearch = document.getElementById('tagSkuBSearch');
     const tagFilterOverlapBtn = document.getElementById('tagFilterOverlapBtn');
+    const tagToggleInputsBtn = document.getElementById('tagToggleInputsBtn');
+    const tagMatcherSidebar = document.getElementById('tagMatcherSidebar');
+    const tagToggleIcon = document.getElementById('tagToggleIcon');
+    const tagToggleText = document.getElementById('tagToggleText');
 
     let masterTagData = new Map(); // SKU -> Map<MPN, { tagName: value }>
     let tagExportData = [];
@@ -1495,186 +1500,184 @@ document.addEventListener('DOMContentLoaded', () => {
     let tagSearchQueryA = '';
     let tagSearchQueryB = '';
     let tagOverlapOnly = false;
+    let tagFilesLoadedCount = 0;
+    let tagLoadedFilesList = [];
+    let isTagInputsCollapsed = false;
 
     // --- Tag Matcher Logic ---
-    tagCsvInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    tagToggleInputsBtn.addEventListener('click', () => {
+        isTagInputsCollapsed = !isTagInputsCollapsed;
+        tagMatcherSidebar.classList.toggle('collapsed', isTagInputsCollapsed);
 
-        const reader = new FileReader();
-        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+        if (isTagInputsCollapsed) {
+            tagToggleIcon.setAttribute('data-lucide', 'chevron-down');
+            tagToggleText.textContent = 'Restore Setup';
+            showToast("Setup collapsed for analysis view.");
+        } else {
+            tagToggleIcon.setAttribute('data-lucide', 'chevron-up');
+            tagToggleText.textContent = 'Collapse Setup';
+        }
+        lucide.createIcons();
+    });
+    tagCsvInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
 
-        reader.onload = (e) => {
-            try {
-                masterTagData.clear();
-                let sheetsFound = 0;
+        showToast(`Processing ${files.length} file(s)...`);
 
-                if (isExcel) {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    sheetsFound = workbook.SheetNames.length;
+        // We don't clear masterTagData here so users can append files
+        // masterTagData.clear(); 
 
-                    workbook.SheetNames.forEach(sheetName => {
-                        const sheet = workbook.Sheets[sheetName];
-                        const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                        if (rawRows.length < 2) return;
+        let totalSkusBefore = masterTagData.size;
+        let filesProcessed = 0;
 
-                        // Header tracking
-                        let skuIdx = -1;
-                        let mpnIdx = -1;
-                        let attrIdx = 7; // Default to H column (index 7)
-                        let headers = [];
-                        let headerRowIdx = -1;
-                        let foundHeader = false;
+        for (const file of files) {
+            await new Promise((resolve) => {
+                const reader = new FileReader();
+                const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
 
-                        // Heuristic: Scan rows to find one housing both SKU and Part Number indicators
-                        for (let i = 0; i < Math.min(rawRows.length, 80); i++) {
-                            const row = rawRows[i];
-                            if (!row || !Array.isArray(row)) continue;
+                reader.onload = (e) => {
+                    try {
+                        let skuParsedInFile = 0;
+                        if (isExcel) {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
 
-                            // Use Array.from to handle sparse arrays from Excel
-                            const normalized = Array.from(row).map(cell =>
-                                String(cell || "").toLowerCase().replace(/\s+/g, ' ').trim()
-                            );
+                            workbook.SheetNames.forEach(sheetName => {
+                                const sheet = workbook.Sheets[sheetName];
+                                const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                                if (rawRows.length < 2) return;
 
-                            let tempSkuIdx = normalized.findIndex(s => s && (s.includes('listing') || s.includes('prsku') || s === 'sku'));
-                            let tempMpnIdx = normalized.findIndex(s => s && (s.includes('manufacturer') || s.includes('mpn') || s.includes('part number')));
+                                let skuIdx = -1, mpnIdx = -1, attrIdx = 7, headers = [], headerRowIdx = -1, foundHeader = false;
 
-                            // Fallback if MPN not exactly matched
-                            if (tempMpnIdx === -1) tempMpnIdx = normalized.findIndex(s => s && s.includes('part'));
+                                for (let i = 0; i < Math.min(rawRows.length, 80); i++) {
+                                    const row = rawRows[i];
+                                    if (!row || !Array.isArray(row)) continue;
+                                    const normalized = Array.from(row).map(cell => String(cell || "").toLowerCase().replace(/\s+/g, ' ').trim());
+                                    let tempSkuIdx = normalized.findIndex(s => s && (s.includes('listing') || s.includes('prsku') || s === 'sku'));
+                                    let tempMpnIdx = normalized.findIndex(s => s && (s.includes('manufacturer') || s.includes('mpn') || s.includes('part number')));
+                                    if (tempMpnIdx === -1) tempMpnIdx = normalized.findIndex(s => s && s.includes('part'));
 
-                            if (tempSkuIdx !== -1 && tempMpnIdx !== -1) {
-                                headerRowIdx = i;
-                                headers = Array.from(row).map(h => String(h || "").trim());
-                                skuIdx = tempSkuIdx;
-                                mpnIdx = tempMpnIdx;
-                                foundHeader = true;
-
-                                // Search for "Attributes" in ALL rows above the header
-                                for (let j = 0; j < i; j++) {
-                                    const topRow = rawRows[j];
-                                    if (!topRow || !Array.isArray(topRow)) continue;
-                                    const findAttrIdx = Array.from(topRow).findIndex(cell =>
-                                        cell && String(cell).toLowerCase().includes('attributes')
-                                    );
-                                    if (findAttrIdx !== -1) {
-                                        attrIdx = findAttrIdx;
+                                    if (tempSkuIdx !== -1 && tempMpnIdx !== -1) {
+                                        headerRowIdx = i;
+                                        headers = Array.from(row).map(h => String(h || "").trim());
+                                        skuIdx = tempSkuIdx;
+                                        mpnIdx = tempMpnIdx;
+                                        foundHeader = true;
+                                        for (let j = 0; j < i; j++) {
+                                            const topRow = rawRows[j];
+                                            if (!topRow || !Array.isArray(topRow)) continue;
+                                            const findAttrIdx = Array.from(topRow).findIndex(cell => cell && String(cell).toLowerCase().includes('attributes'));
+                                            if (findAttrIdx !== -1) { attrIdx = findAttrIdx; break; }
+                                        }
                                         break;
                                     }
                                 }
-                                break;
-                            }
-                        }
 
-                        if (foundHeader) {
-                            for (let i = headerRowIdx + 1; i < rawRows.length; i++) {
-                                const row = rawRows[i];
-                                if (!row || !row[skuIdx]) continue;
+                                if (foundHeader) {
+                                    for (let i = headerRowIdx + 1; i < rawRows.length; i++) {
+                                        const row = rawRows[i];
+                                        if (!row || !row[skuIdx]) continue;
+                                        const sku = String(row[skuIdx]).trim();
+                                        const mpn = String(row[mpnIdx] || "").trim();
+                                        if (!sku || !mpn || sku.toLowerCase().includes('listing') || sku.toLowerCase() === 'sku' || sku.length < 3) continue;
 
-                                const sku = String(row[skuIdx]).trim();
-                                const mpn = String(row[mpnIdx] || "").trim();
+                                        if (!masterTagData.has(sku)) masterTagData.set(sku, new Map());
+                                        if (!masterTagData.get(sku).has(mpn)) masterTagData.get(sku).set(mpn, {});
 
-                                // Clean SKU metadata/headers
-                                if (!sku || !mpn || sku.toLowerCase().includes('listing') || sku.toLowerCase() === 'sku' || sku.length < 3) continue;
-
-                                if (!masterTagData.has(sku)) masterTagData.set(sku, new Map());
-                                if (!masterTagData.get(sku).has(mpn)) masterTagData.get(sku).set(mpn, {});
-
-                                const tagObj = masterTagData.get(sku).get(mpn);
-                                headers.forEach((header, hIdx) => {
-                                    if (hIdx < attrIdx || !header) return;
-                                    const val = (row[hIdx] === undefined || row[hIdx] === null) ? "" : String(row[hIdx]).trim();
-                                    tagObj[header] = val;
-                                });
-                            }
-                        }
-                    });
-                } else {
-                    const content = e.target.result;
-                    const lines = content.split(/\r?\n/).filter(line => line.trim());
-                    if (lines.length > 0) {
-                        const getParts = (line) => {
-                            if (line.includes('\t')) return line.split('\t').map(s => s.trim().replace(/^["']|["']$/g, ''));
-                            return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^["']|["']$/g, ''));
-                        };
-
-                        let skuIdx = -1;
-                        let mpnIdx = -1;
-                        let attrIdx = 7;
-                        let headers = [];
-                        let headerIdx = -1;
-                        let foundHeader = false;
-
-                        for (let i = 0; i < Math.min(lines.length, 50); i++) {
-                            const parts = getParts(lines[i]);
-                            const normalized = parts.map(p => String(p || "").toLowerCase().replace(/\s+/g, ' ').trim());
-
-                            let tempSkuIdx = normalized.findIndex(s => s && (s.includes('listing') || s.includes('prsku') || s === 'sku'));
-                            let tempMpnIdx = normalized.findIndex(s => s && (s.includes('manufacturer') || s.includes('mpn') || s.includes('part number')));
-
-                            if (tempSkuIdx !== -1 && tempMpnIdx !== -1) {
-                                headerIdx = i;
-                                headers = parts;
-                                skuIdx = tempSkuIdx;
-                                mpnIdx = tempMpnIdx;
-                                foundHeader = true;
-                                break;
-                            }
-                        }
-
-                        if (foundHeader) {
-                            lines.slice(headerIdx + 1).forEach(line => {
-                                const parts = getParts(line);
-                                if (!parts[skuIdx] || !parts[mpnIdx]) return;
-                                const sku = String(parts[skuIdx]).trim();
-                                const mpn = String(parts[mpnIdx]).trim();
-                                if (!sku || !mpn || sku.toLowerCase().includes('listing') || sku.toLowerCase() === 'sku' || sku.length < 3) return;
-
-                                if (!masterTagData.has(sku)) masterTagData.set(sku, new Map());
-                                if (!masterTagData.get(sku).has(mpn)) masterTagData.get(sku).set(mpn, {});
-
-                                const tagObj = masterTagData.get(sku).get(mpn);
-                                headers.forEach((header, hIdx) => {
-                                    if (hIdx < attrIdx || !header) return;
-                                    const val = (parts[hIdx] === undefined || parts[hIdx] === null) ? "" : String(parts[hIdx]).trim();
-                                    tagObj[header] = val;
-                                });
+                                        const tagObj = masterTagData.get(sku).get(mpn);
+                                        headers.forEach((header, hIdx) => {
+                                            if (hIdx < attrIdx || !header) return;
+                                            const val = (row[hIdx] === undefined || row[hIdx] === null) ? "" : String(row[hIdx]).trim();
+                                            tagObj[header] = val;
+                                        });
+                                        skuParsedInFile++;
+                                    }
+                                }
                             });
+                        } else {
+                            const content = e.target.result;
+                            const lines = content.split(/\r?\n/).filter(line => line.trim());
+                            if (lines.length > 0) {
+                                const getParts = (line) => {
+                                    if (line.includes('\t')) return line.split('\t').map(s => s.trim().replace(/^["']|["']$/g, ''));
+                                    return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^["']|["']$/g, ''));
+                                };
+                                let skuIdx = -1, mpnIdx = -1, attrIdx = 7, headers = [], headerIdx = -1, foundHeader = false;
+                                for (let i = 0; i < Math.min(lines.length, 50); i++) {
+                                    const parts = getParts(lines[i]);
+                                    const normalized = parts.map(p => String(p || "").toLowerCase().replace(/\s+/g, ' ').trim());
+                                    let tempSkuIdx = normalized.findIndex(s => s && (s.includes('listing') || s.includes('prsku') || s === 'sku'));
+                                    let tempMpnIdx = normalized.findIndex(s => s && (s.includes('manufacturer') || s.includes('mpn') || s.includes('part number')));
+                                    if (tempSkuIdx !== -1 && tempMpnIdx !== -1) {
+                                        headerIdx = i; headers = parts; skuIdx = tempSkuIdx; mpnIdx = tempMpnIdx; foundHeader = true; break;
+                                    }
+                                }
+                                if (foundHeader) {
+                                    lines.slice(headerIdx + 1).forEach(line => {
+                                        const parts = getParts(line);
+                                        if (!parts[skuIdx] || !parts[mpnIdx]) return;
+                                        const sku = String(parts[skuIdx]).trim();
+                                        const mpn = String(parts[mpnIdx]).trim();
+                                        if (!sku || !mpn || sku.toLowerCase().includes('listing') || sku.toLowerCase() === 'sku' || sku.length < 3) return;
+                                        if (!masterTagData.has(sku)) masterTagData.set(sku, new Map());
+                                        if (!masterTagData.get(sku).has(mpn)) masterTagData.get(sku).set(mpn, {});
+                                        const tagObj = masterTagData.get(sku).get(mpn);
+                                        headers.forEach((header, hIdx) => {
+                                            if (hIdx < attrIdx || !header) return;
+                                            const val = (parts[hIdx] === undefined || parts[hIdx] === null) ? "" : String(parts[hIdx]).trim();
+                                            tagObj[header] = val;
+                                        });
+                                        skuParsedInFile++;
+                                    });
+                                }
+                            }
                         }
+                        filesProcessed++;
+                        tagFilesLoadedCount++;
+                        tagLoadedFilesList.push(file.name);
+                        resolve();
+                    } catch (err) {
+                        console.error(`Error processing ${file.name}:`, err);
+                        resolve();
                     }
-                }
+                };
 
-                if (masterTagData.size === 0) {
-                    showToast("Alert: No SKU/MPN columns found. Check file headers.");
-                    tagCsvInfo.classList.remove('active');
-                    tagCsvInfo.style.display = 'none';
-                    tagCsvLabel.style.display = 'flex';
-                } else {
-                    tagCsvName.textContent = file.name;
-                    tagCsvMeta.textContent = `${masterTagData.size.toLocaleString()} SKUs parsed`;
-                    tagCsvLabel.style.display = 'none';
-                    tagCsvInfo.style.display = 'flex';
-                    tagCsvInfo.classList.add('active');
-                    showToast(`Loaded ${masterTagData.size.toLocaleString()} SKUs.`);
-                    lookupTagOptions();
-                }
-                lucide.createIcons();
-            } catch (err) {
-                showToast(`Error: ${err.message}`);
-                console.error(err);
+                if (isExcel) reader.readAsArrayBuffer(file);
+                else reader.readAsText(file);
+            });
+        }
+
+        if (masterTagData.size === 0) {
+            showToast("Alert: No SKU/MPN columns found in any of the files.");
+            tagCsvInfo.classList.remove('active');
+            tagCsvInfo.style.display = 'none';
+            tagCsvLabel.style.display = 'flex';
+        } else {
+            // Show file list line by line if multiple, or single name
+            if (tagLoadedFilesList.length > 1) {
+                tagCsvName.innerHTML = tagLoadedFilesList.map(name => `<div class="file-name-pill">${name}</div>`).join('');
+            } else {
+                tagCsvName.textContent = tagLoadedFilesList[0];
             }
-        };
 
-        if (isExcel) reader.readAsArrayBuffer(file);
-        else reader.readAsText(file);
+            tagCsvMeta.textContent = `${masterTagData.size.toLocaleString()} SKUs parsed across ${tagFilesLoadedCount} file(s)`;
+            tagCsvLabel.style.display = 'none';
+            tagFileStatusArea.style.display = 'flex';
+            tagCsvInfo.style.display = 'flex'; // Fix visibility
+            showToast(`Total: ${masterTagData.size.toLocaleString()} SKUs from ${tagFilesLoadedCount} file(s).`);
+            lookupTagOptions();
+        }
+        lucide.createIcons();
     });
 
     changeTagCsvBtn.addEventListener('click', () => {
-        tagCsvInfo.style.display = 'none';
-        tagCsvInfo.classList.remove('active');
+        tagFileStatusArea.style.display = 'none';
         tagCsvLabel.style.display = 'flex';
         tagCsvInput.value = '';
         masterTagData.clear();
+        tagFilesLoadedCount = 0;
+        tagLoadedFilesList = [];
     });
 
     clearTagBtn.addEventListener('click', () => {
@@ -1693,10 +1696,13 @@ document.addEventListener('DOMContentLoaded', () => {
         tagSearchQueryA = '';
         tagSearchQueryB = '';
         tagOverlapOnly = false;
-        tagFilterOverlapBtn.classList.remove('active');
+        tagFilterOverlapBtn.checked = false;
         tagExportData = [];
         selectedTagPartA = null;
         selectedTagPartB = null;
+        masterTagData.clear();
+        tagFilesLoadedCount = 0;
+        tagLoadedFilesList = [];
     });
 
     tagSkuPairInput.addEventListener('input', lookupTagOptions);
@@ -1794,6 +1800,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
         fullOptionsA = getMergedOptions(skuA, manualTagOptionA.value);
         fullOptionsB = skuB ? getMergedOptions(skuB, manualTagOptionB.value) : [];
+
+        // --- Calculate Stats for Headers ---
+        const partsA = new Set(fullOptionsA.map(o => o.part.toLowerCase().trim()));
+        const partsB = new Set(fullOptionsB.map(o => o.part.toLowerCase().trim()));
+
+        const sharedCountA = fullOptionsA.filter(o => partsB.has(o.part.toLowerCase().trim())).length;
+        const sharedCountB = fullOptionsB.filter(o => partsA.has(o.part.toLowerCase().trim())).length;
+
+        // Update Headers with Stats
+        const formatHeader = (sku, total, shared) => {
+            return `
+                <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.15rem; font-weight: 800; color: var(--text-main);">Select SKU ${sku} Option</span>
+                    </div>
+                    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+                        <span class="sku-tag" style="background: var(--primary-light); color: var(--primary); font-size: 0.85rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 6px;">
+                            ${total} options
+                        </span>
+                        <span class="sku-tag" style="background: var(--success-light); color: var(--success); font-size: 0.85rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 6px;">
+                            ${shared} shared part#
+                        </span>
+                    </div>
+                </div>
+            `;
+        };
+
+        tagSkuAHeader.innerHTML = formatHeader(skuA, fullOptionsA.length, sharedCountA);
+        if (skuB) {
+            tagSkuBHeader.innerHTML = formatHeader(skuB, fullOptionsB.length, sharedCountB);
+        } else {
+            tagSkuBHeader.textContent = 'Select SKU B Option';
+        }
 
         // Auto-select if single option and nothing selected yet
         if (fullOptionsA.length === 1 && !selectedTagPartA) selectedTagPartA = fullOptionsA[0].part;
