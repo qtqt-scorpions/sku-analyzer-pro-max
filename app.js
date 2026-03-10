@@ -19,6 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const displayFileName = document.getElementById('displayFileName');
     const displayFileMeta = document.getElementById('displayFileMeta');
     const changeFileBtn = document.getElementById('changeFileBtn');
+    const masterDataModeFileBtn = document.getElementById('masterDataModeFileBtn');
+    const masterDataModePasteBtn = document.getElementById('masterDataModePasteBtn');
+    const masterDataFileArea = document.getElementById('masterDataFileArea');
+    const masterDataPasteArea = document.getElementById('masterDataPasteArea');
+    const masterDataPasteInput = document.getElementById('masterDataPasteInput');
+    const processMasterPasteBtn = document.getElementById('processMasterPasteBtn');
 
     const statusDataFileInput = document.getElementById('statusDataFileInput');
     const statusFileLabel = document.getElementById('statusFileLabel');
@@ -67,6 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const exdisplayFileName = document.getElementById('exdisplayFileName');
     const exdisplayFileMeta = document.getElementById('exdisplayFileMeta');
     const changeExclusionCsvBtn = document.getElementById('changeExclusionCsvBtn');
+    const exclusionDataModeFileBtn = document.getElementById('exclusionDataModeFileBtn');
+    const exclusionDataModePasteBtn = document.getElementById('exclusionDataModePasteBtn');
+    const exclusionDataFileArea = document.getElementById('exclusionDataFileArea');
+    const exclusionDataPasteArea = document.getElementById('exclusionDataPasteArea');
+    const exclusionDataPasteInput = document.getElementById('exclusionDataPasteInput');
+    const processExclusionPasteBtn = document.getElementById('processExclusionPasteBtn');
     const exclusionSkuInput = document.getElementById('exclusionSkuInput');
     const processExclusionBtn = document.getElementById('processExclusionBtn');
     const clearExclusionBtn = document.getElementById('clearExclusionBtn');
@@ -280,34 +292,80 @@ document.addEventListener('DOMContentLoaded', () => {
     masterFileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
-        processFile(file, (content) => {
-            const lines = content.split(/\r?\n/);
-            masterData.clear();
-            lines.forEach((line, index) => {
-                if (index === 0) return;
-                const parts = line.split(/[,;\t]/);
-                if (parts.length >= 2) {
-                    const original = parts[0].trim().replace(/^["']|["']$/g, '');
-                    const next = parts[1].trim().replace(/^["']|["']$/g, '');
-                    if (original) {
-                        if (!masterData.has(original)) masterData.set(original, new Set());
-                        masterData.get(original).add(next);
-                    }
-                }
-            });
-            displayFileName.textContent = file.name;
-            displayFileMeta.textContent = `${masterData.size.toLocaleString()} records loaded`;
-            fileLabel.style.display = 'none';
-            fileInfoCard.classList.add('active');
-            lucide.createIcons();
-        });
+        processFile(file, (content) => handleMasterData(content, file.name));
     });
 
+    masterDataModeFileBtn.addEventListener('click', () => {
+        masterDataModeFileBtn.classList.add('active');
+        masterDataModePasteBtn.classList.remove('active');
+        masterDataFileArea.style.display = 'block';
+        masterDataPasteArea.style.display = 'none';
+        lucide.createIcons();
+    });
+
+    masterDataModePasteBtn.addEventListener('click', () => {
+        masterDataModePasteBtn.classList.add('active');
+        masterDataModeFileBtn.classList.remove('active');
+        masterDataPasteArea.style.display = 'block';
+        masterDataFileArea.style.display = 'none';
+        lucide.createIcons();
+    });
+
+    processMasterPasteBtn.addEventListener('click', () => {
+        const content = masterDataPasteInput.value.trim();
+        if (!content) {
+            showToast("Please paste some data first.");
+            return;
+        }
+        handleMasterData(content, "Pasted Master Data");
+        lucide.createIcons();
+    });
+
+    function handleMasterData(content, fileName) {
+        const lines = content.split(/\r?\n/).filter(line => line.trim());
+        if (lines.length === 0) return;
+
+        masterData.clear();
+        lines.forEach((line, index) => {
+            if (index === 0 && (line.toLowerCase().includes('sku') || line.toLowerCase().includes('original'))) return;
+            const parts = line.split(/[,;\t]/);
+            if (parts.length >= 2) {
+                const original = parts[0].trim().replace(/^["']|["']$/g, '');
+                const next = parts[1].trim().replace(/^["']|["']$/g, '');
+                if (original) {
+                    if (!masterData.has(original)) masterData.set(original, new Set());
+                    masterData.get(original).add(next);
+                }
+            }
+        });
+
+        displayFileName.textContent = fileName;
+        displayFileMeta.textContent = `${masterData.size.toLocaleString()} records loaded`;
+
+        // UI Flow based on mode
+        if (masterDataModeFileBtn.classList.contains('active')) {
+            masterDataFileArea.style.display = 'none';
+            fileLabel.style.display = 'none';
+        }
+
+        fileInfoCard.style.display = 'flex';
+        fileInfoCard.classList.add('active');
+        lucide.createIcons();
+    }
+
     changeFileBtn.addEventListener('click', () => {
+        fileInfoCard.style.display = 'none';
         fileInfoCard.classList.remove('active');
-        fileLabel.style.display = 'block';
-        masterFileInput.value = '';
+
+        // Restore based on mode
+        if (masterDataModeFileBtn.classList.contains('active')) {
+            fileLabel.style.display = 'flex';
+            masterDataFileArea.style.display = 'block';
+            masterFileInput.value = '';
+        } else {
+            // Already visible in paste mode
+        }
+
         masterData.clear();
     });
 
@@ -686,6 +744,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const skuBSelectArea = document.getElementById('skuBSelectArea');
     const matcherSkuASearch = document.getElementById('matcherSkuASearch');
     const matcherSkuBSearch = document.getElementById('matcherSkuBSearch');
+    const matcherDataModeFileBtn = document.getElementById('matcherDataModeFileBtn');
+    const matcherDataModePasteBtn = document.getElementById('matcherDataModePasteBtn');
+    const matcherDataFileArea = document.getElementById('matcherDataFileArea');
+    const matcherDataPasteArea = document.getElementById('matcherDataPasteArea');
+    const matcherDataPasteInput = document.getElementById('matcherDataPasteInput');
+    const processMatcherPasteBtn = document.getElementById('processMatcherPasteBtn');
 
     let imageRows = [];
     let selectedPartA = null;
@@ -704,81 +768,129 @@ document.addEventListener('DOMContentLoaded', () => {
     matcherCsvInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        processFile(file, (content) => handleSupplierData(content, file.name));
+    });
 
-        processFile(file, (content) => {
-            const lines = content.split(/\r?\n/).filter(line => line.trim());
-            if (lines.length === 0) return;
+    matcherDataModeFileBtn.addEventListener('click', () => {
+        matcherDataModeFileBtn.classList.add('active');
+        matcherDataModePasteBtn.classList.remove('active');
+        matcherDataFileArea.style.display = 'block';
+        matcherDataPasteArea.style.display = 'none';
+        lucide.createIcons();
+    });
 
-            const getParts = (line) => {
-                if (line.includes('\t')) return line.split('\t').map(s => s.trim().replace(/^["']|["']$/g, ''));
-                return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^["']|["']$/g, ''));
+    matcherDataModePasteBtn.addEventListener('click', () => {
+        matcherDataModePasteBtn.classList.add('active');
+        matcherDataModeFileBtn.classList.remove('active');
+        matcherDataPasteArea.style.display = 'block';
+        matcherDataFileArea.style.display = 'none';
+        lucide.createIcons();
+    });
+
+    processMatcherPasteBtn.addEventListener('click', () => {
+        const content = matcherDataPasteInput.value.trim();
+        if (!content) {
+            showToast("Please paste some data first.");
+            return;
+        }
+        handleSupplierData(content, "Pasted Data");
+        lucide.createIcons();
+    });
+
+    function handleSupplierData(content, fileName) {
+        const lines = content.split(/\r?\n/).filter(line => line.trim());
+        if (lines.length === 0) return;
+
+        const getParts = (line) => {
+            if (line.includes('\t')) return line.split('\t').map(s => s.trim().replace(/^["']|["']$/g, ''));
+            return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^["']|["']$/g, ''));
+        };
+
+        let colMap = { sku: -1, part: -1, supplier: -1, name: -1, desc: -1 };
+        let headerIdx = -1;
+
+        for (let i = 0; i < Math.min(lines.length, 50); i++) {
+            const parts = getParts(lines[i]);
+            parts.forEach((p, pIdx) => {
+                const s = p.toLowerCase().trim();
+                if (!s) return;
+                if (s === 'prsku' || s === 'sku' || s === 'wayfair listing') colMap.sku = pIdx;
+                if (s.includes('manufacturer part number') || s === 'mpn' || s === 'part number' || s === 'actualmanufacturerpartnumber') colMap.part = pIdx;
+                if (s.includes('supplierid') || s === 'supplier id') colMap.supplier = pIdx;
+                if (s === 'optionname' || s.includes('option name')) colMap.name = pIdx;
+                if (s === 'description' || s === 'product name') colMap.desc = pIdx;
+            });
+            if (colMap.sku !== -1 && colMap.part !== -1) {
+                headerIdx = i;
+                break;
+            }
+        }
+
+        if (headerIdx === -1) {
+            showToast("Error: Missing PrSKU or Part Number columns.");
+            return;
+        }
+
+        imageRows = lines.slice(headerIdx + 1).map(line => {
+            const parts = getParts(line);
+            const row = {
+                PrSKU: (parts[colMap.sku] || '').trim(),
+                ActualManufacturerPartNumber: (parts[colMap.part] || '').trim(),
+                SupplierID: (parts[colMap.supplier] || '').trim(),
+                OptionName: (parts[colMap.name] || parts[colMap.desc] || '').trim()
             };
+            return row;
+        }).filter(r => r.PrSKU && r.ActualManufacturerPartNumber);
 
-            // --- Better Header Detection ---
-            let colMap = { sku: -1, part: -1, supplier: -1, name: -1, desc: -1 };
-            let headerIdx = -1;
+        const uniquePrSkus = new Set(imageRows.map(r => r.PrSKU).filter(s => s));
+        if (uniquePrSkus.size < 2) {
+            showToast("Error: Data must contain at least two different PrSKU values.");
+            matcherCsvName.textContent = "Invalid Data";
+            matcherCsvMeta.textContent = `Only ${uniquePrSkus.size} unique PrSKU(s) found`;
+            matcherCsvInfo.style.background = "#fef2f2";
+            matcherCsvInfo.style.borderColor = "#fecaca";
 
-            for (let i = 0; i < Math.min(lines.length, 50); i++) {
-                const parts = getParts(lines[i]);
-                parts.forEach((p, pIdx) => {
-                    const s = p.toLowerCase().trim();
-                    if (!s) return;
-                    if (s === 'prsku' || s === 'sku' || s === 'wayfair listing') colMap.sku = pIdx;
-                    if (s.includes('manufacturer part number') || s === 'mpn' || s === 'part number' || s === 'actualmanufacturerpartnumber') colMap.part = pIdx;
-                    if (s.includes('supplierid') || s === 'supplier id') colMap.supplier = pIdx;
-                    if (s === 'optionname' || s.includes('option name')) colMap.name = pIdx;
-                    if (s === 'description' || s === 'product name') colMap.desc = pIdx;
-                });
-                if (colMap.sku !== -1 && colMap.part !== -1) {
-                    headerIdx = i;
-                    break;
-                }
-            }
-
-            if (headerIdx === -1) {
-                showToast("Error: Missing PrSKU or Part Number columns.");
-                return;
-            }
-
-            imageRows = lines.slice(headerIdx + 1).map(line => {
-                const parts = getParts(line);
-                const row = {
-                    PrSKU: (parts[colMap.sku] || '').trim(),
-                    ActualManufacturerPartNumber: (parts[colMap.part] || '').trim(),
-                    SupplierID: (parts[colMap.supplier] || '').trim(),
-                    OptionName: (parts[colMap.name] || parts[colMap.desc] || '').trim()
-                };
-                return row;
-            }).filter(r => r.PrSKU && r.ActualManufacturerPartNumber);
-
-            // --- Validation: Check for at least two different PrSKU values ---
-            const uniquePrSkus = new Set(imageRows.map(r => r.PrSKU).filter(s => s));
-            if (uniquePrSkus.size < 2) {
-                showToast("Error: CSV must contain at least two different PrSKU values.");
-                matcherCsvName.textContent = "Invalid CSV";
-                matcherCsvMeta.textContent = `Only ${uniquePrSkus.size} unique PrSKU(s) found`;
-                matcherCsvInfo.style.background = "#fef2f2";
-                matcherCsvInfo.style.borderColor = "#fecaca";
-                return;
-            } else {
-                matcherCsvInfo.style.background = "#f0fdf4";
-                matcherCsvInfo.style.borderColor = "#bbf7d0";
-            }
-
-            matcherCsvName.textContent = file.name;
-            matcherCsvMeta.textContent = `${imageRows.length.toLocaleString()} records loaded`;
-            matcherCsvLabel.style.display = 'none';
+            // Show info card but keep inputs based on mode
             matcherCsvInfo.style.display = 'flex';
             matcherCsvInfo.classList.add('active');
-            lookupOptionsFromCsv();
-        });
-    });
+
+            if (matcherDataModeFileBtn.classList.contains('active')) {
+                matcherDataFileArea.style.display = 'none';
+            }
+            return;
+        } else {
+            matcherCsvInfo.style.background = "#f0fdf4";
+            matcherCsvInfo.style.borderColor = "#bbf7d0";
+        }
+
+        matcherCsvName.textContent = fileName;
+        matcherCsvMeta.textContent = `${imageRows.length.toLocaleString()} records loaded`;
+
+        // UI Flow based on mode
+        if (matcherDataModeFileBtn.classList.contains('active')) {
+            matcherDataFileArea.style.display = 'none';
+            matcherCsvLabel.style.display = 'none';
+        }
+
+        matcherCsvInfo.style.display = 'flex';
+        matcherCsvInfo.classList.add('active');
+        lookupOptionsFromCsv();
+        lucide.createIcons();
+    }
 
     changeMatcherCsvBtn.addEventListener('click', () => {
         matcherCsvInfo.style.display = 'none';
         matcherCsvInfo.classList.remove('active');
-        matcherCsvLabel.style.display = 'flex';
-        matcherCsvInput.value = '';
+
+        // Restore based on mode
+        if (matcherDataModeFileBtn.classList.contains('active')) {
+            matcherCsvLabel.style.display = 'flex';
+            matcherDataFileArea.style.display = 'block';
+            matcherCsvInput.value = '';
+        } else {
+            // In paste mode, it's already visible
+        }
+
         imageRows = [];
         updateMatcherResults();
     });
@@ -1678,6 +1790,17 @@ document.addEventListener('DOMContentLoaded', () => {
         masterTagData.clear();
         tagFilesLoadedCount = 0;
         tagLoadedFilesList = [];
+
+        // Also clear inputs and results
+        tagSkuPairInput.value = '';
+        tagResultsContainer.innerHTML = '<div class="empty-state"><p>Upload tag data and select options to see comparison.</p></div>';
+        tagSkuASelectArea.innerHTML = '<p class="empty-text">Enter SKUs to see options</p>';
+        tagSkuBSelectArea.innerHTML = '<p class="empty-text">Enter SKUs to see options</p>';
+        manualTagOptionA.value = '';
+        manualTagOptionB.value = '';
+        tagSkuAHeader.textContent = 'Select SKU A Option';
+        tagSkuBHeader.textContent = 'Select SKU B Option';
+        lucide.createIcons();
     });
 
     clearTagBtn.addEventListener('click', () => {
@@ -1700,9 +1823,10 @@ document.addEventListener('DOMContentLoaded', () => {
         tagExportData = [];
         selectedTagPartA = null;
         selectedTagPartB = null;
-        masterTagData.clear();
-        tagFilesLoadedCount = 0;
-        tagLoadedFilesList = [];
+        fullOptionsA = [];
+        fullOptionsB = [];
+        currentTagSkus = [];
+        lucide.createIcons();
     });
 
     tagSkuPairInput.addEventListener('input', lookupTagOptions);
@@ -2059,66 +2183,109 @@ document.addEventListener('DOMContentLoaded', () => {
     exclusionCsvInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
-        processFile(file, (content) => {
-            const lines = content.split(/\r?\n/).filter(line => line.trim());
-            if (lines.length === 0) return;
-
-            const getParts = (line) => {
-                if (line.includes('\t')) return line.split('\t').map(s => s.trim().replace(/^["']|["']$/g, ''));
-                return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^["']|["']$/g, ''));
-            };
-
-            const headers = getParts(lines[0]);
-            const colMap = {};
-            headers.forEach((h, i) => colMap[h.trim().toLowerCase()] = i);
-
-            const getCol = (name) => {
-                const lowerName = name.toLowerCase();
-                return colMap[lowerName];
-            };
-
-            const skuIdx = getCol('prsku') ?? getCol('sku') ?? getCol('sku1');
-            if (skuIdx === undefined) {
-                showToast("Error: No SKU column (PrSKU or SKU) found in file.");
-                return;
-            }
-
-            masterExclusionData.clear();
-            lines.slice(1).forEach(line => {
-                const parts = getParts(line);
-                const sku = (parts[skuIdx] || '').trim();
-
-                const getVal = (name) => {
-                    const idx = getCol(name);
-                    return idx !== undefined && (parts[idx] || '').toUpperCase() === 'TRUE';
-                };
-
-                if (sku) {
-                    masterExclusionData.set(sku, {
-                        IsKitSKU: getVal('iskitsku'),
-                        IsCompositeSKU: getVal('iscompositesku'),
-                        Trad_Class_Excl: getVal('trad_class_excl'),
-                        Trad_Supplier_Excl: getVal('trad_supplier_excl'),
-                        Brand_Auth_Exclusion: getVal('brand_auth_exclusion'),
-                        SKU_Exclusion: getVal('sku_exclusion'),
-                        Supplier_Part_Exclusion: getVal('supplier_part_exclusion')
-                    });
-                }
-            });
-
-            exdisplayFileName.textContent = file.name;
-            exdisplayFileMeta.textContent = `${masterExclusionData.size.toLocaleString()} records loaded`;
-            exclusionCsvLabel.style.display = 'none';
-            exclusionCsvInfo.classList.add('active');
-            lucide.createIcons();
-        });
+        processFile(file, (content) => handleExclusionData(content, file.name));
     });
 
+    exclusionDataModeFileBtn.addEventListener('click', () => {
+        exclusionDataModeFileBtn.classList.add('active');
+        exclusionDataModePasteBtn.classList.remove('active');
+        exclusionDataFileArea.style.display = 'block';
+        exclusionDataPasteArea.style.display = 'none';
+        lucide.createIcons();
+    });
+
+    exclusionDataModePasteBtn.addEventListener('click', () => {
+        exclusionDataModePasteBtn.classList.add('active');
+        exclusionDataModeFileBtn.classList.remove('active');
+        exclusionDataPasteArea.style.display = 'block';
+        exclusionDataFileArea.style.display = 'none';
+        lucide.createIcons();
+    });
+
+    processExclusionPasteBtn.addEventListener('click', () => {
+        const content = exclusionDataPasteInput.value.trim();
+        if (!content) {
+            showToast("Please paste some data first.");
+            return;
+        }
+        handleExclusionData(content, "Pasted Exclusion Data");
+        lucide.createIcons();
+    });
+
+    function handleExclusionData(content, fileName) {
+        const lines = content.split(/\r?\n/).filter(line => line.trim());
+        if (lines.length === 0) return;
+
+        const getParts = (line) => {
+            if (line.includes('\t')) return line.split('\t').map(s => s.trim().replace(/^["']|["']$/g, ''));
+            return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^["']|["']$/g, ''));
+        };
+
+        const headers = getParts(lines[0]);
+        const colMap = {};
+        headers.forEach((h, i) => colMap[h.trim().toLowerCase()] = i);
+
+        const getCol = (name) => {
+            const lowerName = name.toLowerCase();
+            return colMap[lowerName];
+        };
+
+        const skuIdx = getCol('prsku') ?? getCol('sku') ?? getCol('sku1');
+        if (skuIdx === undefined) {
+            showToast("Error: No SKU column (PrSKU or SKU) found in file.");
+            return;
+        }
+
+        masterExclusionData.clear();
+        lines.slice(1).forEach(line => {
+            const parts = getParts(line);
+            const sku = (parts[skuIdx] || '').trim();
+
+            const getVal = (name) => {
+                const idx = getCol(name);
+                return idx !== undefined && (parts[idx] || '').toUpperCase() === 'TRUE';
+            };
+
+            if (sku) {
+                masterExclusionData.set(sku, {
+                    IsKitSKU: getVal('iskitsku'),
+                    IsCompositeSKU: getVal('iscompositesku'),
+                    Trad_Class_Excl: getVal('trad_class_excl'),
+                    Trad_Supplier_Excl: getVal('trad_supplier_excl'),
+                    Brand_Auth_Exclusion: getVal('brand_auth_exclusion'),
+                    SKU_Exclusion: getVal('sku_exclusion'),
+                    Supplier_Part_Exclusion: getVal('supplier_part_exclusion')
+                });
+            }
+        });
+
+        exdisplayFileName.textContent = fileName;
+        exdisplayFileMeta.textContent = `${masterExclusionData.size.toLocaleString()} records loaded`;
+
+        // UI Flow based on mode
+        if (exclusionDataModeFileBtn.classList.contains('active')) {
+            exclusionDataFileArea.style.display = 'none';
+            exclusionCsvLabel.style.display = 'none';
+        }
+
+        exclusionCsvInfo.style.display = 'flex';
+        exclusionCsvInfo.classList.add('active');
+        lucide.createIcons();
+    }
+
     changeExclusionCsvBtn.addEventListener('click', () => {
+        exclusionCsvInfo.style.display = 'none';
         exclusionCsvInfo.classList.remove('active');
-        exclusionCsvLabel.style.display = 'flex';
-        exclusionCsvInput.value = '';
+
+        // Restore based on mode
+        if (exclusionDataModeFileBtn.classList.contains('active')) {
+            exclusionCsvLabel.style.display = 'flex';
+            exclusionDataFileArea.style.display = 'block';
+            exclusionCsvInput.value = '';
+        } else {
+            // Paste area already visible
+        }
+
         masterExclusionData.clear();
     });
 

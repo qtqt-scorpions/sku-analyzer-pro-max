@@ -70,26 +70,52 @@
             <div class="main-grid">
                 <section class="left-col">
                     <div class="glass-card mb-2">
-                        <div class="header-title mb-1">
-                            <i data-lucide="database"></i>
-                            <h3>1. Consolidation File</h3>
+                        <div class="card-header mb-1"
+                            style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.5rem;">
+                            <div class="header-title">
+                                <i data-lucide="database"></i>
+                                <h3>1. Consolidation File</h3>
+                            </div>
+                            <div class="mode-toggles"
+                                style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
+                                <button id="masterDataModeFileBtn" class="mode-btn active"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">File</button>
+                                <button id="masterDataModePasteBtn" class="mode-btn"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">Paste</button>
+                            </div>
                         </div>
-                        <div class="file-upload-wrapper">
+
+                        <!-- Active Info Card (Shared) -->
+                        <div id="fileInfoCard" class="file-info-card" style="display: none; margin-bottom: 1.5rem;">
+                            <div class="file-icon-box">
+                                <i data-lucide="file-spreadsheet"></i>
+                            </div>
+                            <div class="file-details">
+                                <span id="displayFileName" class="file-name">filename.csv</span>
+                                <span id="displayFileMeta" class="file-meta">0 records</span>
+                            </div>
+                            <button id="changeFileBtn" class="change-file-btn">Change</button>
+                        </div>
+
+                        <!-- Mode: File -->
+                        <div id="masterDataFileArea" class="file-upload-wrapper">
                             <input type="file" id="masterFileInput" accept=".csv, .xlsx, .xls" />
                             <label for="masterFileInput" class="file-label" id="fileLabel">
                                 <i data-lucide="upload-cloud"></i>
                                 <span>Choose CSV File</span>
                             </label>
+                        </div>
 
-                            <div id="fileInfoCard" class="file-info-card">
-                                <div class="file-icon-box">
-                                    <i data-lucide="file-spreadsheet"></i>
-                                </div>
-                                <div class="file-details">
-                                    <span id="displayFileName" class="file-name">filename.csv</span>
-                                    <span id="displayFileMeta" class="file-meta">0 records</span>
-                                </div>
-                                <button id="changeFileBtn" class="change-file-btn">Change</button>
+                        <!-- Mode: Paste -->
+                        <div id="masterDataPasteArea" style="display: none;">
+                            <textarea id="masterDataPasteInput" class="premium-textarea"
+                                placeholder="Paste consolidation data here (including headers)...&#10;OriginalSKU    NewSKU    PrStatus&#10;SKU-OLD    SKU-NEW    4"
+                                style="height: 150px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;"></textarea>
+                            <div class="controls">
+                                <button id="processMasterPasteBtn" class="btn primary btn-sm w-100"
+                                    style="height: 40px; border-radius: 10px;">
+                                    <i data-lucide="zap"></i> Process Pasted Master
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -239,25 +265,51 @@
             <div class="matcher-layout">
                 <div class="matcher-sidebar">
                     <div class="premium-card mb-2">
-                        <div class="header-title mb-1" style="margin-bottom: 1.5rem;">
-                            <i data-lucide="database"></i>
-                            <h3>1. Data CSV</h3>
+                        <div class="card-header mb-1" style="margin-bottom: 1rem;">
+                            <div class="header-title">
+                                <i data-lucide="database"></i>
+                                <h3>1. Supplier Records</h3>
+                            </div>
+                            <div class="mode-toggles"
+                                style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
+                                <button id="matcherDataModeFileBtn" class="mode-btn active"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">File</button>
+                                <button id="matcherDataModePasteBtn" class="mode-btn"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">Paste</button>
+                            </div>
                         </div>
-                        <div class="file-upload-wrapper">
+
+                        <!-- Active Info Card (Shared) -->
+                        <div id="matcherCsvInfo" class="file-info-card" style="display: none; margin-bottom: 1.5rem;">
+                            <div class="file-icon-box">
+                                <i data-lucide="file-spreadsheet"></i>
+                            </div>
+                            <div class="file-details">
+                                <span id="matcherCsvName" class="file-name">filename.csv</span>
+                                <span id="matcherCsvMeta" class="file-meta">0 records</span>
+                            </div>
+                            <button id="changeMatcherCsvBtn" class="change-file-btn">Change</button>
+                        </div>
+
+                        <!-- Mode: File -->
+                        <div id="matcherDataFileArea" class="file-upload-wrapper">
                             <input type="file" id="matcherCsvInput" accept=".csv, .xlsx, .xls" />
                             <label for="matcherCsvInput" class="file-label" id="matcherCsvLabel">
                                 <i data-lucide="upload-cloud"></i>
                                 <span>Upload Supplier Records</span>
                             </label>
-                            <div id="matcherCsvInfo" class="file-info-card">
-                                <div class="file-icon-box">
-                                    <i data-lucide="file-spreadsheet"></i>
-                                </div>
-                                <div class="file-details">
-                                    <span id="matcherCsvName" class="file-name">filename.csv</span>
-                                    <span id="matcherCsvMeta" class="file-meta">0 records</span>
-                                </div>
-                                <button id="changeMatcherCsvBtn" class="change-file-btn">Change</button>
+                        </div>
+
+                        <!-- Mode: Paste -->
+                        <div id="matcherDataPasteArea" style="display: none;">
+                            <textarea id="matcherDataPasteInput" class="premium-textarea"
+                                placeholder="Paste supplier data here (including headers)...&#10;PrSKU    SupplierID    PartNumber&#10;SKU123    105688    MPN999"
+                                style="height: 180px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;"></textarea>
+                            <div class="controls">
+                                <button id="processMatcherPasteBtn" class="btn primary btn-sm w-100"
+                                    style="height: 40px; border-radius: 10px;">
+                                    <i data-lucide="zap"></i> Process Pasted Data
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -651,26 +703,52 @@
             <div class="main-grid">
                 <section class="left-col">
                     <div class="glass-card mb-2">
-                        <div class="header-title mb-1">
-                            <i data-lucide="database"></i>
-                            <h3>1. Exclusion Database</h3>
+                        <div class="card-header mb-1"
+                            style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.5rem;">
+                            <div class="header-title">
+                                <i data-lucide="database"></i>
+                                <h3>1. Exclusion Database</h3>
+                            </div>
+                            <div class="mode-toggles"
+                                style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
+                                <button id="exclusionDataModeFileBtn" class="mode-btn active"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">File</button>
+                                <button id="exclusionDataModePasteBtn" class="mode-btn"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">Paste</button>
+                            </div>
                         </div>
-                        <div class="file-upload-wrapper">
+
+                        <!-- Active Info Card (Shared) -->
+                        <div id="exclusionCsvInfo" class="file-info-card" style="display: none; margin-bottom: 1.5rem;">
+                            <div class="file-icon-box" style="background: #ef4444;">
+                                <i data-lucide="file-spreadsheet"></i>
+                            </div>
+                            <div class="file-details">
+                                <span id="exdisplayFileName" class="file-name">filename.csv</span>
+                                <span id="exdisplayFileMeta" class="file-meta">0 records</span>
+                            </div>
+                            <button id="changeExclusionCsvBtn" class="change-file-btn">Change</button>
+                        </div>
+
+                        <!-- Mode: File -->
+                        <div id="exclusionDataFileArea" class="file-upload-wrapper">
                             <input type="file" id="exclusionCsvInput" accept=".csv, .xlsx, .xls" />
                             <label for="exclusionCsvInput" class="file-label" id="exclusionCsvLabel">
                                 <i data-lucide="upload-cloud"></i>
                                 <span>Choose Exclusion File</span>
                             </label>
+                        </div>
 
-                            <div id="exclusionCsvInfo" class="file-info-card">
-                                <div class="file-icon-box" style="background: #ef4444;">
-                                    <i data-lucide="file-spreadsheet"></i>
-                                </div>
-                                <div class="file-details">
-                                    <span id="exdisplayFileName" class="file-name">filename.csv</span>
-                                    <span id="exdisplayFileMeta" class="file-meta">0 records</span>
-                                </div>
-                                <button id="changeExclusionCsvBtn" class="change-file-btn">Change</button>
+                        <!-- Mode: Paste -->
+                        <div id="exclusionDataPasteArea" style="display: none;">
+                            <textarea id="exclusionDataPasteInput" class="premium-textarea"
+                                placeholder="Paste exclusion data here (including headers)...&#10;PrSKU    MaID    Trad_Class_Excl&#10;SKU123    34539    TRUE"
+                                style="height: 150px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;"></textarea>
+                            <div class="controls">
+                                <button id="processExclusionPasteBtn" class="btn primary btn-sm w-100"
+                                    style="height: 40px; border-radius: 10px; background: #ef4444; border-color: #ef4444;">
+                                    <i data-lucide="zap"></i> Process Pasted Database
+                                </button>
                             </div>
                         </div>
                     </div>
