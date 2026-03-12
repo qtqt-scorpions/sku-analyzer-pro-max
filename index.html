@@ -78,10 +78,10 @@
                             </div>
                             <div class="mode-toggles"
                                 style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
-                                <button id="masterDataModeFileBtn" class="mode-btn active"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">File</button>
-                                <button id="masterDataModePasteBtn" class="mode-btn"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">Paste</button>
+                                <button id="masterDataModePasteBtn" class="mode-btn active"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Paste</button>
+                                <button id="masterDataModeFileBtn" class="mode-btn"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">File</button>
                             </div>
                         </div>
 
@@ -98,7 +98,7 @@
                         </div>
 
                         <!-- Mode: File -->
-                        <div id="masterDataFileArea" class="file-upload-wrapper">
+                        <div id="masterDataFileArea" class="file-upload-wrapper" style="display: none;">
                             <input type="file" id="masterFileInput" accept=".csv, .xlsx, .xls" />
                             <label for="masterFileInput" class="file-label" id="fileLabel">
                                 <i data-lucide="upload-cloud"></i>
@@ -107,7 +107,7 @@
                         </div>
 
                         <!-- Mode: Paste -->
-                        <div id="masterDataPasteArea" style="display: none;">
+                        <div id="masterDataPasteArea">
                             <textarea id="masterDataPasteInput" class="premium-textarea"
                                 placeholder="Paste consolidation data here (including headers)...&#10;OriginalSKU    NewSKU    PrStatus&#10;SKU-OLD    SKU-NEW    4"
                                 style="height: 150px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;"></textarea>
@@ -129,15 +129,15 @@
                             </div>
                             <div class="mode-toggles"
                                 style="display: flex; gap: 0.5rem; background: #f1f5f9; padding: 0.25rem; border-radius: 8px;">
-                                <button id="modeUploadBtn" class="mode-btn active"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">File</button>
-                                <button id="modePasteBtn" class="mode-btn"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">Paste</button>
+                                <button id="modePasteBtn" class="mode-btn active"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Paste</button>
+                                <button id="modeUploadBtn" class="mode-btn"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">File</button>
                             </div>
                         </div>
 
                         <!-- Mode: Upload -->
-                        <div id="statusFileUploadArea" class="file-upload-wrapper mb-1">
+                        <div id="statusFileUploadArea" class="file-upload-wrapper mb-1" style="display: none;">
                             <input type="file" id="statusDataFileInput" accept=".csv, .xlsx, .xls" />
                             <label for="statusDataFileInput" class="file-label" id="statusFileLabel">
                                 <i data-lucide="file-up"></i>
@@ -156,7 +156,7 @@
                         </div>
 
                         <!-- Mode: Paste -->
-                        <div id="statusPasteArea" style="display: none;">
+                        <div id="statusPasteArea">
                             <textarea id="statusInput" placeholder="SKU1    SKU2    Stt1    Stt2    TargetBTS"
                                 style="height: 250px;"></textarea>
                         </div>
@@ -272,10 +272,10 @@
                             </div>
                             <div class="mode-toggles"
                                 style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
-                                <button id="matcherDataModeFileBtn" class="mode-btn active"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">File</button>
-                                <button id="matcherDataModePasteBtn" class="mode-btn"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">Paste</button>
+                                <button id="matcherDataModePasteBtn" class="mode-btn active"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Paste</button>
+                                <button id="matcherDataModeFileBtn" class="mode-btn"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">File</button>
                             </div>
                         </div>
 
@@ -292,7 +292,7 @@
                         </div>
 
                         <!-- Mode: File -->
-                        <div id="matcherDataFileArea" class="file-upload-wrapper">
+                        <div id="matcherDataFileArea" class="file-upload-wrapper" style="display: none;">
                             <input type="file" id="matcherCsvInput" accept=".csv, .xlsx, .xls" />
                             <label for="matcherCsvInput" class="file-label" id="matcherCsvLabel">
                                 <i data-lucide="upload-cloud"></i>
@@ -301,7 +301,7 @@
                         </div>
 
                         <!-- Mode: Paste -->
-                        <div id="matcherDataPasteArea" style="display: none;">
+                        <div id="matcherDataPasteArea">
                             <textarea id="matcherDataPasteInput" class="premium-textarea"
                                 placeholder="Paste supplier data here (including headers)...&#10;PrSKU    SupplierID    PartNumber&#10;SKU123    105688    MPN999"
                                 style="height: 180px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;"></textarea>
@@ -711,10 +711,10 @@
                             </div>
                             <div class="mode-toggles"
                                 style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
-                                <button id="exclusionDataModeFileBtn" class="mode-btn active"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">File</button>
-                                <button id="exclusionDataModePasteBtn" class="mode-btn"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">Paste</button>
+                                <button id="exclusionDataModePasteBtn" class="mode-btn active"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Paste</button>
+                                <button id="exclusionDataModeFileBtn" class="mode-btn"
+                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">File</button>
                             </div>
                         </div>
 
@@ -731,7 +731,7 @@
                         </div>
 
                         <!-- Mode: File -->
-                        <div id="exclusionDataFileArea" class="file-upload-wrapper">
+                        <div id="exclusionDataFileArea" class="file-upload-wrapper" style="display: none;">
                             <input type="file" id="exclusionCsvInput" accept=".csv, .xlsx, .xls" />
                             <label for="exclusionCsvInput" class="file-label" id="exclusionCsvLabel">
                                 <i data-lucide="upload-cloud"></i>
@@ -740,7 +740,7 @@
                         </div>
 
                         <!-- Mode: Paste -->
-                        <div id="exclusionDataPasteArea" style="display: none;">
+                        <div id="exclusionDataPasteArea">
                             <textarea id="exclusionDataPasteInput" class="premium-textarea"
                                 placeholder="Paste exclusion data here (including headers)...&#10;PrSKU    MaID    Trad_Class_Excl&#10;SKU123    34539    TRUE"
                                 style="height: 150px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;"></textarea>

@@ -1544,24 +1544,26 @@ document.addEventListener('DOMContentLoaded', () => {
     downloadCooBtn.addEventListener('click', () => {
         if (cooExportData.length === 0) return;
 
+        // Use proper CSV formatting with quotes for all fields to prevent shifting
         const headers = ["SKU1", "SKU2", "SKU1,SKU2", "Target", "Resolved?", "Resolution", "Image + Tags Updated?", "Note - Details (TH AIPN - Conso)", "Reason Not Resolved", "Note - Details"];
-        let csvContent = "\uFEFF"; // Byte Order Mark for Excel UTF-8 support
-        csvContent += headers.join(",") + "\n";
+        let csvContent = "\uFEFF"; // BOM for Excel
+        csvContent += headers.map(h => `"${h}"`).join(",") + "\n";
 
         cooExportData.forEach(row => {
             const line = [
-                `"${row.sku1}"`,
-                `"${row.sku2}"`,
-                `"${row.skuCombined}"`,
-                `"${row.target}"`,
-                `"${row.resolved}"`,
-                `"${row.resolution}"`,
-                `"${row.imageUpdated}"`,
-                `"${row.aipnNote}"`,
-                `"${row.reason}"`,
-                `"${row.note}"`
+                row.sku1,
+                row.sku2,
+                row.skuCombined,
+                row.target,
+                row.resolved,
+                row.resolution,
+                row.imageUpdated,
+                row.aipnNote,
+                row.reason,
+                row.note
             ];
-            csvContent += line.join(",") + "\n";
+            // Quote all values and join
+            csvContent += line.map(val => `"${String(val || "").replace(/"/g, '""')}"`).join(",") + "\n";
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -2138,10 +2140,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <table class="data-table" style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr>
-                        <th style="width: 35%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border);">Tag Name</th>
-                        <th style="width: 25%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border);">${label1}</th>
-                        <th style="width: 25%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border);">${label2}</th>
-                        <th style="width: 15%; text-align: center; padding: 1rem; border-bottom: 2px solid var(--card-border);">Status</th>
+                        <th style="width: 35%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">Tag Name</th>
+                        <th style="width: 25%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">${label1}</th>
+                        <th style="width: 25%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">${label2}</th>
+                        <th style="width: 15%; text-align: center; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2154,16 +2156,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tableHtml += `
                 <tr ${rowClass}>
-                    <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); font-weight: 500; font-size: 0.9rem;">
+                    <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); font-weight: 500; font-size: 0.9rem; vertical-align: middle;">
                         ${humanizeTagName(row.tag)}
                     </td>
-                    <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); font-size: 0.9rem; color: var(--text-main);">
+                    <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); font-size: 0.9rem; color: var(--text-main); vertical-align: middle;">
                         ${row.val1 || '<span style="color: #cbd5e1;">N/A</span>'}
                     </td>
-                    <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); font-size: 0.9rem; color: var(--text-main);">
+                    <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); font-size: 0.9rem; color: var(--text-main); vertical-align: middle;">
                         ${row.val2 || '<span style="color: #cbd5e1;">N/A</span>'}
                     </td>
-                    <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); text-align: center;">
+                    <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); text-align: center; vertical-align: middle;">
                         <span class="sku-tag ${statusClass}">${statusText}</span>
                     </td>
                 </tr>
@@ -2310,31 +2312,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (exclusionExportData.length === 0) return;
 
         const headers = ["SKU1", "SKU2", "Target", "Resolved", "Resolution", "Image + Tags Updated?", "Note - Details (TH AIPN - Conso)", "Reason Not Resolved", "Note - Details"];
-        let csvContent = headers.join(",") + "\n";
+        let csvContent = "\uFEFF"; // BOM for Excel
+        csvContent += headers.map(h => `"${h}"`).join(",") + "\n";
 
         exclusionExportData.forEach(row => {
+            let line = [];
             if (row.isClean) {
-                // If clean, only SKU1 and SKU2 are filled, others blank
-                const line = [
-                    `"${row.sku1}"`,
-                    `"${row.sku2}"`,
-                    `""`, `""`, `""`, `""`, `""`, `""`, `""`
-                ];
-                csvContent += line.join(",") + "\n";
+                line = [row.sku1, row.sku2, "", "", "", "", "", "", ""];
             } else {
-                const line = [
-                    `"${row.sku1}"`,
-                    `"${row.sku2}"`,
-                    `""`, // Target
-                    `"No"`, // Resolved - Tool only does Resolved = No
-                    `""`, // Resolution
-                    `"No"`, // Image + Tags Updated?
-                    `""`, // Note - Details (TH AIPN - Conso)
-                    `"${row.reason}"`,
-                    `"${row.note}"`
+                line = [
+                    row.sku1,
+                    row.sku2,
+                    "", // Target
+                    "No", // Resolved
+                    "", // Resolution
+                    "", // Image + Tags Updated?
+                    "", // Note - Details (TH AIPN - Conso)
+                    row.reason,
+                    row.note
                 ];
-                csvContent += line.join(",") + "\n";
             }
+            csvContent += line.map(val => `"${String(val || "").replace(/"/g, '""')}"`).join(",") + "\n";
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
