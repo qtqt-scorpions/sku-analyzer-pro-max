@@ -111,6 +111,10 @@ body {
     border-color: var(--card-border);
 }
 
+.uppercase-exception {
+    text-transform: uppercase !important;
+}
+
 .dark-theme .sku-tag {
     background: #334155;
     color: var(--text-main);
@@ -479,6 +483,7 @@ body {
     font-size: 0.75rem;
     font-family: 'JetBrains Mono', monospace;
     color: var(--primary);
+    text-transform: uppercase;
 }
 
 .table-scroll-wrapper {
@@ -656,13 +661,15 @@ body {
 /* Tag Matcher Results sticky container & fixed height */
 #tagTab .results-container {
     position: sticky;
-    top: 75px; /* Stick closer to the top nav to avoid empty gaps */
+    top: 75px;
+    /* Stick closer to the top nav to avoid empty gaps */
     align-self: flex-start;
     margin-top: 0;
 }
 
 #tagResultsContainer {
-    max-height: calc(100vh - 300px); /* Reduced height to avoid cutting off at bottom */
+    max-height: calc(100vh - 300px);
+    /* Reduced height to avoid cutting off at bottom */
     overflow-y: auto;
     position: relative;
     border: 1px solid var(--card-border);
@@ -684,7 +691,8 @@ body {
 
 /* Selection Areas alignment - Fixed height with scroll as requested */
 #tagTab .option-select-area {
-    max-height: 520px !important; /* Slightly shorter to fit screen while remaining tall */
+    max-height: 520px !important;
+    /* Slightly shorter to fit screen while remaining tall */
     overflow-y: auto !important;
 }
 
@@ -1304,12 +1312,12 @@ textarea:focus {
 
 .sku-tag {
     background: #f1f5f9;
-    padding: 0.3rem 0.7rem;
+    padding: 0.4rem 0.8rem;
     border-radius: 6px;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
     color: #334155;
     border: 1px solid #e2e8f0;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .sku-tag.success {
@@ -1331,21 +1339,22 @@ textarea:focus {
 }
 
 .result-text {
-    font-size: 0.95rem;
+    font-size: 1.25rem;
     color: var(--text-main);
     flex: 1;
-    padding: 0.5rem 0;
+    padding: 0.75rem 0;
     font-family: 'Inter', sans-serif;
-    line-height: 1.4;
+    line-height: 1.6;
+    font-weight: 500;
 }
 
 .copy-btn {
     background: #f1f5f9;
     color: var(--primary);
     border: 1px solid #e2e8f0;
-    padding: 0.5rem 1.25rem;
+    padding: 0.6rem 1.5rem;
     border-radius: 10px;
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -1799,4 +1808,212 @@ textarea:focus {
     background: #1e293b;
     color: #94a3b8;
     border-color: #334155;
+}
+
+/* AI Configuration & Model Selection */
+.config-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.model-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    margin-top: 0.5rem;
+}
+
+.model-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.model-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
+}
+
+.model-card.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    box-shadow: 0 0 0 2px var(--primary);
+}
+
+.dark-theme .model-card.active {
+    background: rgba(37, 99, 235, 0.1);
+    border-color: var(--primary);
+}
+
+.model-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.model-badge.pro {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.model-badge.flash {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.model-badge.lite {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.dark-theme .model-badge.pro {
+    background: #4c1d95;
+    color: #ddd6fe;
+}
+
+.dark-theme .model-badge.flash {
+    background: #0c4a6e;
+    color: #bae6fd;
+}
+
+.dark-theme .model-badge.lite {
+    background: #064e3b;
+    color: #bbf7d0;
+}
+
+.model-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.25rem;
+}
+
+.model-card[data-model*="pro"] .model-icon {
+    background: #8b5cf6;
+    color: white;
+}
+
+.model-card[data-model*="flash"] .model-icon {
+    background: #0ea5e9;
+    color: white;
+}
+
+.model-card[data-model*="lite"] .model-icon {
+    background: #10b981;
+    color: white;
+}
+
+.model-card h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.model-card p {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.4;
+}
+
+.model-features {
+    list-style: none;
+    padding: 0;
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.model-features li {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.model-features li::before {
+    content: "•";
+    color: var(--primary);
+    font-weight: bold;
+}
+
+/* Premium Input Styles */
+.premium-input {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.premium-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: var(--input-focus-shadow);
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon .premium-input {
+    padding-right: 3rem;
+}
+
+.icon-btn {
+    position: absolute;
+    right: 0.75rem;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.icon-btn:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.input-hint {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 0.4rem;
+    opacity: 0.8;
+}
+
+@media (max-width: 900px) {
+    .model-selection-grid {
+        grid-template-columns: 1fr;
+    }
 }

@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let analyzerExportData = [];
     let masterData = new Map(); // OriginalSKU -> NewSKU
     let currentStatusFileContent = null;
-    let analyzerMode = 'upload'; // 'upload' or 'paste'
+    let analyzerMode = 'paste'; // 'upload' or 'paste'
 
     let masterCOOData = new Map(); // SKU -> Country of Origin
     let cooExportData = [];
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const adj = new Map();
         const allSkus = new Set();
         lines.forEach(line => {
-            const skus = line.split(/[\t\s,]+/).map(s => s.trim()).filter(s => s && s.toLowerCase() !== 'sku1' && s.toLowerCase() !== 'sku2');
+            const skus = line.split(/[\t\s,]+/).map(s => s.trim().replace(/^["']|["']$/g, '')).filter(s => s && s.toLowerCase() !== 'sku1' && s.toLowerCase() !== 'sku2');
             if (skus.length > 0) {
                 skus.forEach(sku => {
                     allSkus.add(sku);
@@ -1452,7 +1452,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         lines.forEach(line => {
             // Split by tab, comma, or spaces
-            const skus = line.split(/[\t,]| {2,}/).map(s => s.trim()).filter(s => s.length > 0);
+            const skus = line.split(/[\t,]| {2,}/).map(s => s.trim().replace(/^["']|["']$/g, '')).filter(s => s.length > 0);
             if (skus.length >= 2) {
                 const sku1 = skus[0];
                 const sku2 = skus[1];
@@ -1874,7 +1874,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const skus = text.split(/[\s\t\n,]+/).filter(s => s.length > 0);
+        const skus = text.split(/[\s\t\n,]+/).map(s => s.trim().replace(/^["']|["']$/g, '')).filter(s => s.length > 0);
         if (skus.length < 1) return;
 
         const skuA = skus[0];
@@ -2154,16 +2154,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const statusText = row.match ? 'TRUE' : 'FALSE';
             const rowClass = row.match ? '' : 'style="background: rgba(239, 68, 68, 0.03);"';
 
+            const cleanVal1 = String(row.val1 || '').trim().replace(/^["']|["']$/g, '');
+            const cleanVal2 = String(row.val2 || '').trim().replace(/^["']|["']$/g, '');
+
             tableHtml += `
                 <tr ${rowClass}>
                     <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); font-weight: 500; font-size: 0.9rem; vertical-align: middle;">
                         ${humanizeTagName(row.tag)}
                     </td>
                     <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); font-size: 0.9rem; color: var(--text-main); vertical-align: middle;">
-                        ${row.val1 || '<span style="color: #cbd5e1;">N/A</span>'}
+                        ${cleanVal1 || '<span style="color: #cbd5e1;">N/A</span>'}
                     </td>
                     <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); font-size: 0.9rem; color: var(--text-main); vertical-align: middle;">
-                        ${row.val2 || '<span style="color: #cbd5e1;">N/A</span>'}
+                        ${cleanVal2 || '<span style="color: #cbd5e1;">N/A</span>'}
                     </td>
                     <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); text-align: center; vertical-align: middle;">
                         <span class="sku-tag ${statusClass}">${statusText}</span>
@@ -2351,7 +2354,7 @@ document.addEventListener('DOMContentLoaded', () => {
         exclusionExportData = [];
 
         lines.forEach((line, index) => {
-            const parts = line.split(/[\t\s,]+/).map(s => s.trim()).filter(s => s);
+            const parts = line.split(/[\t\s,]+/).map(s => s.trim().replace(/^["']|["']$/g, '')).filter(s => s);
             if (parts.length < 2) return;
 
             const sku1 = parts[0];
@@ -2506,6 +2509,657 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         exclusionResultsContainer.appendChild(card);
     }
+
+    // --- Toast & Utility ---
+    function showToast(message = "Copied to clipboard!") {
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // --- AI Analyst Logic ---
+    const aiApiKeyInput = document.getElementById('aiApiKeyInput');
+    const toggleApiKeyBtn = document.getElementById('toggleApiKeyBtn');
+    const modelCards = document.querySelectorAll('.model-card');
+
+    const aiCsvInput = document.getElementById('aiCsvInput');
+    const aiCsvInfo = document.getElementById('aiCsvInfo');
+    const aiCsvLabel = document.getElementById('aiCsvLabel');
+    const aiCsvName = document.getElementById('aiCsvName');
+    const aiCsvMeta = document.getElementById('aiCsvMeta');
+    const changeAiCsvBtn = document.getElementById('changeAiCsvBtn');
+    const aiPromptInput = document.getElementById('aiPromptInput');
+    const aiBatchInput = document.getElementById('aiBatchInput');
+    const aiProcessBatchBtn = document.getElementById('aiProcessBatchBtn');
+    const aiProgressArea = document.getElementById('aiProgressArea');
+    const aiProgressBar = document.getElementById('aiProgressBar');
+    const aiProgressCount = document.getElementById('aiProgressCount');
+    const aiProgressText = document.getElementById('aiProgressText');
+    const aiErrorLogArea = document.getElementById('aiErrorLogArea');
+    const aiErrorLogList = document.getElementById('aiErrorLogList');
+    const aiQueryInput = document.getElementById('aiQueryInput');
+    const aiQueryBtn = document.getElementById('aiQueryBtn');
+    const aiQueryClearBtn = document.getElementById('aiQueryClearBtn');
+    const aiQueryResult = document.getElementById('aiQueryResult');
+
+    let aiCatalogData = new Map(); // PrSKU (Listing) -> { sku, name, desc, bullets: [] }
+    let mpnToPrSku = new Map();     // MPN -> PrSKU (Listing)
+    let aiResultsDB = new Map();   // "PrSKU-A|PrSKU-B" -> String (AI Response)
+    let isAiProcessing = false;
+
+    // --- API Key & Model Persistence ---
+    const STORAGE_KEYS = {
+        API_KEY: 'gemini_api_key',
+        MODEL: 'gemini_selected_model'
+    };
+
+    // Load saved settings
+    const savedApiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
+    const savedModel = localStorage.getItem(STORAGE_KEYS.MODEL) || 'gemini-3.1-pro-preview';
+
+    if (savedApiKey) aiApiKeyInput.value = savedApiKey;
+
+    modelCards.forEach(card => {
+        if (card.dataset.model === savedModel) {
+            modelCards.forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+        }
+
+        card.addEventListener('click', () => {
+            modelCards.forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            localStorage.setItem(STORAGE_KEYS.MODEL, card.dataset.model);
+            showToast(`Selected model: ${card.querySelector('h4').textContent}`);
+        });
+    });
+
+    aiApiKeyInput.addEventListener('input', (e) => {
+        localStorage.setItem(STORAGE_KEYS.API_KEY, e.target.value);
+    });
+
+    toggleApiKeyBtn.addEventListener('click', () => {
+        const type = aiApiKeyInput.type === 'password' ? 'text' : 'password';
+        aiApiKeyInput.type = type;
+        toggleApiKeyBtn.innerHTML = type === 'password' ? '<i data-lucide="eye"></i>' : '<i data-lucide="eye-off"></i>';
+        lucide.createIcons();
+    });
+
+    // --- IndexedDB Persistence Engine ---
+    const DB_NAME = 'SKUAnalyzerAI';
+    const STORE_NAME = 'analysis_results';
+
+    function initIndexedDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME);
+                }
+            };
+            request.onsuccess = (e) => resolve(e.target.result);
+            request.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    async function saveResultToDB(key, value) {
+        const db = await initIndexedDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(value, key);
+        return tx.complete;
+    }
+
+    async function loadResultsFromDB() {
+        const db = await initIndexedDB();
+        return new Promise((resolve) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const request = store.getAll();
+            const keysRequest = store.getAllKeys();
+
+            request.onsuccess = () => {
+                keysRequest.onsuccess = () => {
+                    const results = new Map();
+                    request.result.forEach((val, i) => {
+                        results.set(keysRequest.result[i], val);
+                    });
+                    resolve(results);
+                };
+            };
+        });
+    }
+
+    // Load existing results on startup
+    loadResultsFromDB().then(savedResults => {
+        aiResultsDB = savedResults;
+        console.log(`Loaded ${aiResultsDB.size} cached AI results from permanent storage.`);
+    });
+
+    // Default Prompt
+    const defaultAiPrompt = `Persona: Professional Wayfair Data Specialist
+
+You are a precise, expert analyst specializing in Wayfair product listings. Speak in clear, professional English. Your role is to compare TWO SKUs (products) from Wayfair data and calculate the similarity percentage. Always refer to the products by their actual SKU IDs provided in the input, prefixed with "SKU " and in ALL UPPERCASE (e.g., if ID is cbzr1097, write SKU CBZR1097).
+
+- Listing Product Name
+
+- Description  
+
+- Feature Bullets
+
+
+
+Output a single similarity score (0-100%) based on identical or near-identical content. Differences in color, finish, dimensions, or weight count as "option variants" (not core differences). Flag true separators only if they impact:
+
+- Design/Style
+
+- Material
+
+- Functions
+
+- Patterns
+
+- Quantity
+
+For every distinct pair found in the data, generate a separate analysis.
+
+
+
+## Input Format
+
+You receive data for two products, identified as SKU A and SKU B. Each identifier is followed by its actual SKU ID. Use these actual IDs in your final report, prefixed with "SKU " and in ALL UPPERCASE, thay vì các tên mặc định "SKU A" hoặc "SKU B".
+
+- Product Name
+
+- Full Description
+
+- All Feature Bullets
+
+
+
+## Step-by-Step Process
+
+1. **Extract Text**: Quote exact text from each section for both SKUs.
+
+2. **Compare Sections**: Analyze word-for-word similarity per section (e.g., 90% match if phrasing identical except minor words).
+
+3. **Calculate Overall %**: Average the 3 sections' similarity (e.g., Names 100%, Desc 80%, Bullets 90% = 90% total). Explain math briefly.
+
+4. **Differences**:
+
+   - **Core Separators** (if any): List with evidence (e.g., "Different material: [SKU_ID_1] wood vs. [SKU_ID_2] metal – separate products").
+
+   - **Option Variants** (if any): List (e.g., "Color variant: [SKU_ID_1] blue vs. [SKU_ID_2] red").
+
+   - If identical: State "No separating differences; potential duplicates."
+
+
+
+## Output Format (Always Use This Template)
+
+**Similarity Score: [X]%**
+
+
+
+**Section Breakdown:**
+
+| Section | [SKU_ID_1_UPPER] Text | [SKU_ID_2_UPPER] Text | Similarity % |
+
+|---------|------------|------------|--------------|
+
+| Product Name | [Quote] | [Quote] | [X]% |
+
+| Description | [Quote] | [Quote] | [X]% |
+
+| Feature Bullets | [Quote all] | [Quote all] | [X]% |
+
+
+
+**Core Separators:** [List or "None"]
+
+
+
+**Option Variants:** [List or "None"]
+
+
+
+**Recommendation:** [Merge/Duplicate/Variants/Separate + 1-sentence reason + 1-sentence note detailing differences using actual SKU IDs in "SKU [ID_UPPERCASE]" format].
+
+
+
+Example: If names match 100%, desc 85% (minor rephrase), bullets 95% (same features), variants in color: Score 93%. Variants: Color. Recommendation: Variants under one parent.`;
+    aiPromptInput.value = defaultAiPrompt;
+
+    // Load AI Catalog
+    aiCsvInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showToast("Reading AI database...");
+        const reader = new FileReader();
+        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+        reader.onload = (ev) => {
+            try {
+                aiCatalogData.clear();
+
+                const processRawRows = (rawRows) => {
+                    if (rawRows.length < 2) return;
+                    let colMap = { sku: -1, part: -1, name: -1, desc: -1, bullets: [] };
+                    let headerRowIdx = -1;
+
+                    // Scan first 10 rows for headers
+                    for (let i = 0; i < Math.min(rawRows.length, 10); i++) {
+                        const row = rawRows[i];
+                        if (!row || !Array.isArray(row)) continue;
+                        let tempMap = { sku: -1, part: -1, name: -1, desc: -1, bullets: [] };
+                        row.forEach((cell, idx) => {
+                            const s = String(cell || "").toLowerCase().replace(/\s+/g, ' ').trim();
+                            if (!s) return;
+                            // Use robust fallback for finding columns just like the Tag Matcher
+                            if (s.includes('listing') || s.includes('prsku') || s === 'sku') { tempMap.sku = idx; }
+                            if (s.includes('manufacturer') || s.includes('mpn') || s.includes('part number')) { tempMap.part = idx; }
+                            if (s.includes('product name') || s.includes('option name')) { tempMap.name = idx; }
+                            if (s.includes('marketing copy') || s.includes('description')) { tempMap.desc = idx; }
+                            if (s.includes('feature bullet') || s.includes('product feature')) { tempMap.bullets.push(idx); }
+                        });
+
+                        if (tempMap.sku !== -1 && tempMap.part !== -1) {
+                            headerRowIdx = i;
+                            colMap = tempMap;
+                            console.log("AI Analyst - Found Headers at row", i, ":", colMap);
+                            break;
+                        }
+                    }
+
+                    if (headerRowIdx === -1) {
+                        console.error("AI Analyst - Error: Columns not found.");
+                    } else {
+                        let fullDataCount = 0;
+                        for (let i = headerRowIdx + 1; i < rawRows.length; i++) {
+                            const row = rawRows[i];
+                            if (!row || row[colMap.sku] === undefined) continue;
+                            const prSku = String(row[colMap.sku]).trim().toLowerCase();
+                            if (!prSku) continue;
+                            const partNumRaw = String(row[colMap.part] || "").trim();
+                            const partNum = partNumRaw.replace(/\s+/g, ' ').toLowerCase();
+                            if (partNumRaw && partNum !== "wayfair sku") {
+                                mpnToPrSku.set(partNum, prSku);
+                            }
+                            if (partNum === "wayfair sku" || partNum.includes("wayfair sku")) {
+                                const bullets = colMap.bullets.map(bIdx => {
+                                    return String(row[bIdx] || "").trim().replace(/^["']+|["']+$/g, '');
+                                }).filter(b => b);
+
+                                aiCatalogData.set(prSku, {
+                                    sku: prSku,
+                                    name: colMap.name !== -1 ? String(row[colMap.name] || "").trim().replace(/^["']+|["']+$/g, '') : "",
+                                    desc: colMap.desc !== -1 ? String(row[colMap.desc] || "").trim().replace(/^["']+|["']+$/g, '') : "",
+                                    bullets: bullets
+                                });
+                                fullDataCount++;
+                            }
+                        }
+                        console.log(`AI Analyst - Extracted data for ${fullDataCount} Listing Products.`);
+                        console.log(`AI Analyst - Mapped ${mpnToPrSku.size} MPNs to parents.`);
+                    }
+                };
+
+                if (isExcel) {
+                    const data = new Uint8Array(ev.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    workbook.SheetNames.forEach(sheetName => {
+                        const sheet = workbook.Sheets[sheetName];
+                        const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                        processRawRows(rawRows);
+                    });
+                } else {
+                    showToast("Only Excel files (.xlsx) are supported for AI Database due to formatting.");
+                    return;
+                }
+
+                aiCsvName.textContent = file.name;
+                aiCsvMeta.textContent = `${aiCatalogData.size.toLocaleString()} SKUs extracted`;
+                aiCsvLabel.style.display = 'none';
+                aiCsvInfo.style.display = 'flex';
+                showToast(`Success! Extracted ${aiCatalogData.size} target SKUs.`);
+            } catch (err) {
+                showToast(`Error processing file: ${err.message}`);
+                console.error(err);
+            }
+        };
+
+        if (isExcel) reader.readAsArrayBuffer(file);
+        else reader.readAsText(file);
+    });
+
+    changeAiCsvBtn.addEventListener('click', () => {
+        aiCsvInfo.style.display = 'none';
+        aiCsvLabel.style.display = 'flex';
+        aiCsvInput.value = '';
+        aiCatalogData.clear();
+    });
+
+    // Generate pair key
+    const getPairKey = (s1, s2) => {
+        const sorted = [s1.toLowerCase().trim(), s2.toLowerCase().trim()].sort();
+        return sorted.join('|');
+    };
+
+    // Call Gemini API
+    async function callGeminiApi(promptText) {
+        const apiKey = aiApiKeyInput.value.trim();
+        const activeModelCard = document.querySelector('.model-card.active');
+        const model = activeModelCard ? activeModelCard.dataset.model : 'gemini-3.1-pro-preview';
+
+        if (!apiKey) {
+            throw new Error("Missing API Key. Please provide one in the Configuration section.");
+        }
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+        const payload = {
+            contents: [{ parts: [{ text: promptText }] }],
+            generationConfig: { temperature: 0.2 }
+        };
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error?.message || "API Error");
+        }
+
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+    }
+
+    // Process Batch
+    aiProcessBatchBtn.addEventListener('click', async () => {
+        if (isAiProcessing) return;
+
+        if (aiCatalogData.size === 0) {
+            showToast("Please upload the Product Database first.");
+            return;
+        }
+
+        const text = aiBatchInput.value.trim();
+        if (!text) {
+            showToast("Please paste some SKU pairs to analyze");
+            return;
+        }
+
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        const pairsToProcess = [];
+        lines.forEach(line => {
+            const skus = line.split(/[\t\s,]+/).map(s => s.trim().replace(/^["']|["']$/g, '')).filter(s => s);
+            if (skus.length >= 2) {
+                pairsToProcess.push({ sku1: skus[0], sku2: skus[1] });
+            }
+        });
+
+        if (pairsToProcess.length === 0) {
+            showToast("No valid pairs found to analyze.");
+            return;
+        }
+
+        // --- NEW: Check for existing results to avoid accidental costs ---
+        let existingPairsCount = 0;
+        pairsToProcess.forEach(pair => {
+            const s1 = mpnToPrSku.get(pair.sku1.toLowerCase().trim()) || pair.sku1.toLowerCase().trim();
+            const s2 = mpnToPrSku.get(pair.sku2.toLowerCase().trim()) || pair.sku2.toLowerCase().trim();
+            if (aiResultsDB.has(getPairKey(s1, s2))) {
+                existingPairsCount++;
+            }
+        });
+
+        let forceReanalyze = false;
+        if (existingPairsCount > 0) {
+            forceReanalyze = confirm(`Phát hiện ${existingPairsCount} cặp SKU đã được phân tích trước đó.\n\nBạn có muốn PHÂN TÍCH LẠI (Re-analyze) chúng không?\n- Chọn 'OK': Sẽ phân tích lại tất cả (Tốn thêm tiền/token AI).\n- Chọn 'Cancel': Sẽ bỏ qua các cặp cũ, chỉ phân tích các cặp mới.`);
+        }
+        // -----------------------------------------------------------------
+
+        isAiProcessing = true;
+        aiProcessBatchBtn.innerHTML = '<i data-lucide="loader" class="spin"></i> Processing...';
+        aiProgressArea.style.display = 'block';
+        aiProgressText.textContent = "Analyzing...";
+        aiErrorLogArea.style.display = 'none';
+        aiErrorLogList.innerHTML = '';
+        updateAiProgress(0, pairsToProcess.length);
+        let completed = 0;
+
+        const systemPrompt = aiPromptInput.value.trim();
+
+        for (const pair of pairsToProcess) {
+            const input1 = pair.sku1.toLowerCase().trim();
+            const input2 = pair.sku2.toLowerCase().trim();
+
+            // Resolve to Listing IDs (PrSKUs)
+            const s1 = mpnToPrSku.get(input1) || input1;
+            const s2 = mpnToPrSku.get(input2) || input2;
+
+            const key = getPairKey(s1, s2);
+
+            // Skip if exists unless forceReanalyze is true
+            if (aiResultsDB.has(key) && !forceReanalyze) {
+                completed++;
+                updateAiProgress(completed, pairsToProcess.length);
+                continue;
+            }
+
+            const data1 = aiCatalogData.get(s1);
+            const data2 = aiCatalogData.get(s2);
+
+            if (!data1 || !data2) {
+                const missing = [];
+                if (!data1) missing.push(input1);
+                if (!data2) missing.push(input2);
+
+                aiResultsDB.set(key, `**[Error]** Some SKUs not found in the Database.\nMissing Info for: ${missing.join(', ')}`);
+                aiErrorLogArea.style.display = 'block';
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${input1} - ${input2}:</strong> Missing Data`;
+                aiErrorLogList.appendChild(li);
+                completed++;
+                updateAiProgress(completed, pairsToProcess.length);
+                continue;
+            }
+
+            const promptText = `
+${systemPrompt}
+
+### INPUT DATA:
+SKU A ID: ${data1.sku}
+Product Name: ${data1.name}
+Description: ${data1.desc}
+Feature Bullets:
+${data1.bullets.map(b => '- ' + b).join('\n')}
+
+SKU B ID: ${data2.sku}
+Product Name: ${data2.name}
+Description: ${data2.desc}
+Feature Bullets:
+${data2.bullets.map(b => '- ' + b).join('\n')}
+
+REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toUpperCase()}" and "[SKU_ID_2_UPPER]" with "SKU ${data2.sku.toUpperCase()}". Throughout the analysis, always prefix SKU IDs with "SKU " and write them in ALL CAPS.
+`;
+
+            try {
+                await new Promise(r => setTimeout(r, 1000));
+                const responseText = await callGeminiApi(promptText);
+                aiResultsDB.set(key, responseText);
+                await saveResultToDB(key, responseText); // Save to permanent storage
+            } catch (err) {
+                const errMsg = err.message || "Unknown API error";
+                aiErrorLogArea.style.display = 'block';
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${input1} - ${input2}:</strong> ${errMsg}`;
+                aiErrorLogList.appendChild(li);
+
+                if (errMsg.includes("API_KEY_INVALID")) {
+                    showToast("Invalid API Key. Terminating batch.");
+                    break;
+                }
+            }
+
+            completed++;
+            updateAiProgress(completed, pairsToProcess.length);
+        }
+
+        aiProgressText.textContent = "Completed";
+        isAiProcessing = false;
+        aiProcessBatchBtn.innerHTML = '<i data-lucide="bot"></i> Analyze with AI';
+        showToast("Batch analysis completed.");
+        lucide.createIcons();
+    });
+
+    function updateAiProgress(completed, total) {
+        aiProgressCount.textContent = `${completed} / ${total}`;
+        aiProgressBar.style.width = `${(completed / total) * 100}%`;
+    }
+
+    // Query Result
+    aiQueryBtn.addEventListener('click', () => {
+        const text = aiQueryInput.value.trim();
+        if (!text) return;
+
+        // Take the first pair found
+        const skus = text.split(/[\t\s,]+/).map(s => s.trim()).filter(s => s);
+        if (skus.length < 2) {
+            aiQueryResult.innerHTML = '<p class="empty-text">Please enter a valid pair (e.g. SKU1, SKU2)</p>';
+            return;
+        }
+
+        const input1 = skus[0].toLowerCase().trim();
+        const input2 = skus[1].toLowerCase().trim();
+
+        const s1 = mpnToPrSku.get(input1) || input1;
+        const s2 = mpnToPrSku.get(input2) || input2;
+
+        const key = getPairKey(s1, s2);
+
+        aiQueryResult.innerHTML = `<div style="margin-bottom:15px; display:flex; gap:0.5rem; align-items:center;">
+             <span class="sku-tag uppercase-exception" style="background:#8b5cf6;color:white;font-size:1rem;padding:0.4rem 0.8rem;">${input1}</span> 
+             <span style="font-weight:bold;color:var(--text-dim);">VS</span> 
+             <span class="sku-tag uppercase-exception" style="background:#ec4899;color:white;font-size:1rem;padding:0.4rem 0.8rem;">${input2}</span>
+        </div>`;
+
+        if (aiResultsDB.has(key)) {
+            const rawText = aiResultsDB.get(key);
+
+            // Handle markdown specifically for tables
+            let htmlChunks = [];
+            const lines = rawText.split('\n');
+            let inTable = false;
+            let tableHtml = "";
+
+            lines.forEach(line => {
+                if (line.trim().startsWith('|')) {
+                    if (!inTable) { inTable = true; tableHtml = "<div style='overflow-x: auto; margin: 15px 0;'><table style='border-collapse: collapse; width: 100%; font-size: 0.85rem;'><tbody>"; }
+                    if (line.includes('---')) return; // skip separator
+                    const rowCells = line.split('|').map(s => s.trim()).filter((s, i, arr) => i > 0 && i < arr.length - 1);
+                    // Remove quotes from cells (aggressive: all leading/trailing quotes)
+                    const cleanCells = rowCells.map(c => c.trim().replace(/^["']+|["']+$/g, ''));
+                    tableHtml += "<tr>" + cleanCells.map(c => `<td style="border: 1px solid var(--card-border); padding: 8px;">${c}</td>`).join('') + "</tr>";
+                } else {
+                    if (inTable) {
+                        inTable = false;
+                        htmlChunks.push(tableHtml + "</tbody></table></div>");
+                    }
+                    htmlChunks.push(line);
+                }
+            });
+            if (inTable) htmlChunks.push(tableHtml + "</tbody></table></div>");
+
+            let formatted = htmlChunks.join('\n')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            const resultDiv = document.createElement('div');
+            resultDiv.innerHTML = formatted;
+            aiQueryResult.appendChild(resultDiv);
+
+        } else {
+            const notFoundMsg = document.createElement('div');
+            notFoundMsg.innerHTML = `<p class="empty-text" style="color:#ef4444; font-weight:600; text-align:left;">Chưa được phân tích (Not yet analyzed).</p>`;
+            aiQueryResult.appendChild(notFoundMsg);
+        }
+    });
+
+    aiQueryClearBtn.addEventListener('click', () => {
+        aiQueryInput.value = '';
+        aiQueryResult.innerHTML = '<p class="empty-text">Result will appear here</p>';
+    });
+
+    // --- Export/Import Logic ---
+    const aiExportDBBtn = document.getElementById('aiExportDBBtn');
+    const aiImportDBBtn = document.getElementById('aiImportDBBtn');
+    const aiImportFile = document.getElementById('aiImportFile');
+    const aiClearDBBtn = document.getElementById('aiClearDBBtn');
+
+    aiExportDBBtn.addEventListener('click', () => {
+        if (aiResultsDB.size === 0) {
+            showToast("Database is empty. Nothing to export.");
+            return;
+        }
+        const data = Object.fromEntries(aiResultsDB);
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sku_ai_results_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast("Database exported successfully!");
+    });
+
+    aiImportDBBtn.addEventListener('click', () => aiImportFile.click());
+
+    aiClearDBBtn.addEventListener('click', async () => {
+        if (aiResultsDB.size === 0) {
+            showToast("Database is already empty.");
+            return;
+        }
+
+        if (confirm(`Are you sure you want to CLEAR all ${aiResultsDB.size} analysis results? This cannot be undone unless you have a backup.`)) {
+            const db = await initIndexedDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            await tx.objectStore(STORE_NAME).clear();
+            aiResultsDB.clear();
+            showToast("Database cleared successfully!");
+            aiQueryResult.innerHTML = '<p class="empty-text">Result will appear here</p>';
+        }
+    });
+
+    aiImportFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                let importedCount = 0;
+                let overwrittenCount = 0;
+                for (const [key, value] of Object.entries(data)) {
+                    if (aiResultsDB.has(key)) overwrittenCount++;
+                    aiResultsDB.set(key, value);
+                    await saveResultToDB(key, value);
+                    importedCount++;
+                }
+                showToast(`Imported ${importedCount} results (${overwrittenCount} overwritten). Total cached: ${aiResultsDB.size}`);
+                aiImportFile.value = ''; // Reset
+            } catch (err) {
+                showToast("Error: Invalid JSON file.");
+                console.error(err);
+            }
+        };
+        reader.readAsText(file);
+    });
 
     // --- Toast & Utility ---
     function showToast(message = "Copied to clipboard!") {
