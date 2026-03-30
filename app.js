@@ -112,24 +112,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- AI Analyst Selection Logic & UI ---
-    const aiToggleInputsBtn = document.getElementById('aiToggleInputsBtn');
+    const aiToggleConfigBtn = document.getElementById('aiToggleConfigBtn');
+    const aiConfigToggleIcon = document.getElementById('aiConfigToggleIcon');
+    const aiConfigToggleText = document.getElementById('aiConfigToggleText');
+    const aiToggleDbBatchBtn = document.getElementById('aiToggleDbBatchBtn');
+    const aiDbBatchToggleIcon = document.getElementById('aiDbBatchToggleIcon');
+    const aiDbBatchToggleText = document.getElementById('aiDbBatchToggleText');
     const aiMainGrid = document.getElementById('aiMainGrid');
-    const aiToggleIcon = document.getElementById('aiToggleIcon');
-    const aiToggleText = document.getElementById('aiToggleText');
-    let isAiInputsCollapsed = false;
 
-    if (aiToggleInputsBtn) {
-        aiToggleInputsBtn.addEventListener('click', () => {
-            isAiInputsCollapsed = !isAiInputsCollapsed;
-            aiMainGrid.classList.toggle('collapsed', isAiInputsCollapsed);
+    let isAiConfigCollapsed = false;
+    let isAiDbBatchCollapsed = false;
 
-            if (isAiInputsCollapsed) {
-                aiToggleIcon.setAttribute('data-lucide', 'chevron-down');
-                aiToggleText.textContent = 'Restore Setup';
-                showToast("AI Setup collapsed for results view.");
+    if (aiToggleConfigBtn) {
+        aiToggleConfigBtn.addEventListener('click', () => {
+            isAiConfigCollapsed = !isAiConfigCollapsed;
+            aiMainGrid.classList.toggle('collapsed-config', isAiConfigCollapsed);
+
+            if (isAiConfigCollapsed) {
+                aiConfigToggleIcon.setAttribute('data-lucide', 'eye');
+                aiConfigToggleText.textContent = 'Show Config';
+                showToast("AI Configuration hidden.");
             } else {
-                aiToggleIcon.setAttribute('data-lucide', 'chevron-up');
-                aiToggleText.textContent = 'Collapse Setup';
+                aiConfigToggleIcon.setAttribute('data-lucide', 'eye-off');
+                aiConfigToggleText.textContent = 'Hide Config';
+            }
+            lucide.createIcons();
+        });
+    }
+
+    if (aiToggleDbBatchBtn) {
+        aiToggleDbBatchBtn.addEventListener('click', () => {
+            isAiDbBatchCollapsed = !isAiDbBatchCollapsed;
+            aiMainGrid.classList.toggle('collapsed-db-batch', isAiDbBatchCollapsed);
+
+            if (isAiDbBatchCollapsed) {
+                aiDbBatchToggleIcon.setAttribute('data-lucide', 'eye');
+                aiDbBatchToggleText.textContent = 'Show DB & Batch';
+                showToast("Product Database & Batch Analysis hidden.");
+            } else {
+                aiDbBatchToggleIcon.setAttribute('data-lucide', 'eye-off');
+                aiDbBatchToggleText.textContent = 'Hide DB & Batch';
             }
             lucide.createIcons();
         });
@@ -443,19 +465,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function downloadAnalyzerCSV() {
-        const headers = ["Target", "Resolved?", "Resolution", "Image + Tags Updated?", "Note - Details (TH AIPN - Conso)", "Reason Not Resolved", "Note - Details"];
+        const headers = ["SKU1", "SKU2", "Target", "Resolved?", "Resolution", "Image + Tags Updated?", "Note - Details (TH AIPN - Conso)", "Reason Not Resolved", "Note - Details"];
 
         let csvContent = headers.join(",") + "\n";
 
         analyzerExportData.forEach(row => {
             const line = [
+                `"${row.sku1 || ''}"`,
+                `"${row.sku2 || ''}"`,
                 `"${row.resolved === 'Yes' ? row.target : ''}"`,
                 `"${row.resolved}"`,
                 `"${row.resolved === 'Yes' ? row.resolution : ''}"`,
                 `""`, // Image + Tags Updated?
-                `"${row.resolved === 'Yes' ? row.note : ''}"`, // AIPN Note
+                `"${row.noteAipn !== undefined ? row.noteAipn : (row.resolved === 'Yes' ? row.note : '')}"`, // AIPN Note
                 `""`, // Reason Not Resolved
-                `"${row.resolved === 'No' ? row.note : ''}"`  // Note Details
+                `"${row.noteDetails !== undefined ? row.noteDetails : (row.resolved === 'No' ? row.note : '')}"`  // Note Details
             ];
             csvContent += line.join(",") + "\n";
         });
@@ -539,6 +563,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = generateAnalysis(source, target, sttSource, sttTarget);
             if (result) {
+                result.sku1 = sku1;
+                result.sku2 = sku2;
+                result.export.sku1 = sku1;
+                result.export.sku2 = sku2;
                 analyzerExportData.push(result.export);
                 renderAnalyzerResult(result, index);
             }
@@ -651,12 +679,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     const sList = Array.from(mSource).join(', ');
                     const tList = Array.from(mTarget).join(', ');
-                    const txt = `Source [${sList}], Target [${tList}] - No common destination found`;
+                    const combinedList = `${sList},${tList}`;
+                    
+                    warnings.push("No common target");
+
                     return {
-                        tags: [{ text: 'No', type: 'danger' }, { text: 'No common target', type: 'danger' }],
-                        sentence: "Both SKUs don't have the same new target",
-                        copy: txt, isError: true, warnings,
-                        export: { target, resolved: 'No', resolution: '', note: "Both SKUs don't have the same new target" }
+                        tags: [],
+                        sentence: "",
+                        copy: combinedList,
+                        isError: true,
+                        warnings,
+                        export: { target: '', resolved: '', resolution: '', note: '', noteAipn: combinedList, noteDetails: '' }
                     };
                 }
             }
@@ -714,6 +747,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const tagContainer = document.createElement('div');
         tagContainer.className = 'sku-list';
         tagContainer.style.marginBottom = '0.5rem';
+
+        if (result.sku1 && result.sku2) {
+            const span = document.createElement('span');
+            span.className = 'sku-tag';
+            span.textContent = `${result.sku1},${result.sku2}`;
+            tagContainer.appendChild(span);
+        }
+
         result.tags.forEach(tag => {
             const span = document.createElement('span');
             span.className = `sku-tag ${tag.type}`;
@@ -760,10 +801,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const skuPairInput = document.getElementById('skuPairInput');
     const skuAInput = document.getElementById('skuAInput');
     const skuBInput = document.getElementById('skuBInput');
-    const matcherModeLookupBtn = document.getElementById('matcherModeLookupBtn');
-    const matcherModePasteBtn = document.getElementById('matcherModePasteBtn');
-    const matcherLookupArea = document.getElementById('matcherLookupArea');
-    const matcherPasteArea = document.getElementById('matcherPasteArea');
+    const skuALabel = document.getElementById('skuALabel');
+    const skuBLabel = document.getElementById('skuBLabel');
+    // Removed old mode toggle buttons and areas
     const skuASelectArea = document.getElementById('skuASelectArea');
     const skuBSelectArea = document.getElementById('skuBSelectArea');
     const matcherSkuASearch = document.getElementById('matcherSkuASearch');
@@ -782,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let matcherSortDir = 'asc';
     let allPartsA = new Set();
     let allPartsB = new Set();
-    let matcherInputMode = 'lookup'; // 'lookup' or 'paste'
+    // Removed matcherInputMode
     let fullRawOptionsA = []; // Array of {name, part, sku}
     let fullRawOptionsB = [];
     let matcherSearchQueryA = '';
@@ -898,7 +938,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         matcherCsvInfo.style.display = 'flex';
         matcherCsvInfo.classList.add('active');
-        lookupOptionsFromCsv();
+        processCombinedMatcherInput();
         lucide.createIcons();
     }
 
@@ -919,9 +959,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateMatcherResults();
     });
 
-    matcherModeLookupBtn.addEventListener('click', () => setMatcherInputMode('lookup'));
-    matcherModePasteBtn.addEventListener('click', () => setMatcherInputMode('paste'));
-
     matcherSkuASearch.addEventListener('input', (e) => {
         matcherSearchQueryA = e.target.value.toLowerCase().trim();
         renderOptions('A', fullRawOptionsA);
@@ -932,37 +969,110 @@ document.addEventListener('DOMContentLoaded', () => {
         renderOptions('B', fullRawOptionsB);
     });
 
-    function setMatcherInputMode(mode) {
-        matcherInputMode = mode;
-        if (mode === 'lookup') {
-            matcherModeLookupBtn.classList.add('active');
-            matcherModePasteBtn.classList.remove('active');
-            matcherLookupArea.style.display = 'block';
-            matcherPasteArea.style.display = 'none';
-            lookupOptionsFromCsv();
+    skuPairInput.addEventListener('input', processCombinedMatcherInput);
+    skuAInput.addEventListener('input', processCombinedMatcherInput);
+    skuBInput.addEventListener('input', processCombinedMatcherInput);
+
+    // Give time for text to be inserted before processing on paste
+    skuPairInput.addEventListener('paste', () => setTimeout(processCombinedMatcherInput, 0));
+    skuAInput.addEventListener('paste', () => setTimeout(processCombinedMatcherInput, 0));
+    skuBInput.addEventListener('paste', () => setTimeout(processCombinedMatcherInput, 0));
+
+    skuPairInput.addEventListener('blur', () => {
+        const text = skuPairInput.value.trim();
+        const skus = text.split(/[\s\t\n,]+/).filter(s => s.length > 0);
+        if (skus.length > 0) skuPairInput.value = skus.join(', ');
+    });
+
+    const getOptionsForSku = (sku) => {
+        if (!sku || imageRows.length === 0) return [];
+        const searchSku = sku.toLowerCase().trim();
+        const matchingRows = imageRows.filter(r => r.PrSKU.toLowerCase() === searchSku);
+        const seenParts = new Set();
+        const options = [];
+
+        matchingRows.forEach(row => {
+            const part = row.ActualManufacturerPartNumber;
+            if (part && !seenParts.has(part.toLowerCase().trim())) {
+                seenParts.add(part.toLowerCase().trim());
+                options.push({ name: row.OptionName, part: part, sku: row.PrSKU });
+            }
+        });
+        return options;
+    };
+
+    function processCombinedMatcherInput() {
+        // Find inputs
+        const skuText = skuPairInput.value.trim();
+        const skus = skuText.split(/[\s\t\n,]+/).filter(s => s.length > 0);
+        const skuAFilter = skus.length > 0 ? skus[0].toLowerCase() : null;
+        const skuBFilters = skus.length > 1 ? skus.slice(1).map(s => s.toLowerCase()) : [];
+
+        let manualOptionsA = parseManualOptions(skuAInput.value);
+        let manualOptionsB = parseManualOptions(skuBInput.value);
+
+        fullRawOptionsA = [];
+        fullRawOptionsB = [];
+
+        // Update Labels based on input
+        if (skuAFilter) {
+            skuALabel.innerHTML = `<i data-lucide="type"></i> ${skuAFilter.toUpperCase()} Options`;
         } else {
-            matcherModePasteBtn.classList.add('active');
-            matcherModeLookupBtn.classList.remove('active');
-            matcherLookupArea.style.display = 'none';
-            matcherPasteArea.style.display = 'block';
-            processManualOptions();
+            skuALabel.innerHTML = `<i data-lucide="type"></i> SKU A Options`;
+        }
+
+        if (skuBFilters.length > 0) {
+            const bText = skuBFilters.join(', ').toUpperCase();
+            skuBLabel.innerHTML = `<i data-lucide="type"></i> ${bText} Options`;
+        } else {
+            skuBLabel.innerHTML = `<i data-lucide="type"></i> SKU B Options`;
         }
         lucide.createIcons();
-    }
 
-    skuAInput.addEventListener('input', processManualOptions);
-    skuBInput.addEventListener('input', processManualOptions);
+        // Logic for SKU A Side
+        if (skuAFilter) {
+            let skuAOptions = getOptionsForSku(skuAFilter);
+            if (manualOptionsA.length > 0) {
+                // Intersect SKU A parts with manual typed parts 
+                const manualPartsA = new Set(manualOptionsA.map(o => o.part.toLowerCase()));
+                fullRawOptionsA = skuAOptions.filter(o => manualPartsA.has(o.part.toLowerCase()));
+            } else {
+                fullRawOptionsA = skuAOptions;
+            }
+        } else {
+            // No SKU A, only manual options inputted
+            fullRawOptionsA = getDetailedManualOptions(manualOptionsA);
+        }
 
-    function processManualOptions() {
-        if (matcherInputMode !== 'paste') return;
+        // Logic for SKU B Side
+        if (skuBFilters.length > 0) {
+            let skuBOptions = [];
+            let seenPartsB = new Set();
+            skuBFilters.forEach(s => {
+                const opts = getOptionsForSku(s);
+                opts.forEach(o => {
+                    const lowPart = o.part.toLowerCase().trim();
+                    if (!seenPartsB.has(lowPart)) {
+                        seenPartsB.add(lowPart);
+                        skuBOptions.push(o);
+                    }
+                });
+            });
 
-        fullRawOptionsA = parseManualOptions(skuAInput.value);
-        fullRawOptionsB = parseManualOptions(skuBInput.value);
+            if (manualOptionsB.length > 0) {
+                const manualPartsB = new Set(manualOptionsB.map(o => o.part.toLowerCase()));
+                fullRawOptionsB = skuBOptions.filter(o => manualPartsB.has(o.part.toLowerCase()));
+            } else {
+                fullRawOptionsB = skuBOptions;
+            }
+        } else {
+            fullRawOptionsB = getDetailedManualOptions(manualOptionsB);
+        }
 
         allPartsA = new Set(fullRawOptionsA.map(o => o.part.toLowerCase().trim()));
         allPartsB = new Set(fullRawOptionsB.map(o => o.part.toLowerCase().trim()));
 
-        // Auto-select if only one option exists
+        // Check if selected parts are still valid
         const currentA = selectedPartA ? selectedPartA.toLowerCase().trim() : null;
         const currentB = selectedPartB ? selectedPartB.toLowerCase().trim() : null;
 
@@ -975,6 +1085,36 @@ document.addEventListener('DOMContentLoaded', () => {
         renderOptions('A', fullRawOptionsA);
         renderOptions('B', fullRawOptionsB);
         updateMatcherResults();
+    }
+    
+    // Attaches known Supplier Data (if active) to manual options
+    function getDetailedManualOptions(manualOptions) {
+        if (manualOptions.length === 0) return [];
+        if (imageRows.length === 0) return manualOptions; // Fallback if no DB
+        
+        const enhanced = [];
+        const seenParts = new Set();
+        
+        manualOptions.forEach(m => {
+            const targetLower = m.part.toLowerCase();
+            // Try to find it in the DB to grab Name and real SKU
+            const matchingRow = imageRows.find(r => r.ActualManufacturerPartNumber.toLowerCase() === targetLower);
+            
+            if (!seenParts.has(targetLower)) {
+                seenParts.add(targetLower);
+                if (matchingRow) {
+                    enhanced.push({
+                        name: m.name || matchingRow.OptionName,
+                        part: matchingRow.ActualManufacturerPartNumber,
+                        sku: matchingRow.PrSKU
+                    });
+                } else {
+                    enhanced.push(m);
+                }
+            }
+        });
+        
+        return enhanced;
     }
 
     function parseManualOptions(text) {
@@ -992,107 +1132,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parts = line.split(',');
                 const partNumber = parts.pop().trim();
                 const optionName = parts.join(',').trim();
-                if (partNumber) result.push({ name: optionName, part: partNumber, sku: 'SKU' });
+                if (partNumber) result.push({ name: optionName, part: partNumber, sku: 'Manual Option' });
             } else {
-                result.push({ name: '', part: line, sku: 'SKU' });
+                result.push({ name: '', part: line, sku: 'Manual Option' });
             }
         });
         return result;
-    }
-
-    skuPairInput.addEventListener('input', () => {
-        if (matcherInputMode === 'lookup') lookupOptionsFromCsv();
-    });
-
-    skuPairInput.addEventListener('blur', () => {
-        if (matcherInputMode !== 'lookup') return;
-        const text = skuPairInput.value.trim();
-        const skus = text.split(/[\s\t\n,]+/).filter(s => s.length > 0);
-        if (skus.length > 0) {
-            skuPairInput.value = skus.join(', ');
-        }
-    });
-
-    skuPairInput.addEventListener('paste', () => {
-        if (matcherInputMode !== 'lookup') return;
-        setTimeout(() => {
-            const text = skuPairInput.value.trim();
-            const skus = text.split(/[\s\t\n,]+/).filter(s => s.length > 0);
-            if (skus.length > 0) {
-                skuPairInput.value = skus.join(', ');
-                lookupOptionsFromCsv();
-            }
-        }, 0);
-    });
-
-    const getOptionsForSku = (sku) => {
-        if (!sku) return [];
-        const searchSku = sku.toLowerCase().trim();
-        const matchingRows = imageRows.filter(r => r.PrSKU.toLowerCase() === searchSku);
-        const seenParts = new Set();
-        const options = [];
-
-        matchingRows.forEach(row => {
-            const part = row.ActualManufacturerPartNumber;
-            if (part && !seenParts.has(part.toLowerCase().trim())) {
-                seenParts.add(part.toLowerCase().trim());
-                options.push({ name: row.OptionName, part: part, sku: row.PrSKU });
-            }
-        });
-        return options;
-    };
-
-    function lookupOptionsFromCsv() {
-        if (imageRows.length === 0) return;
-
-        const text = skuPairInput.value.trim();
-        if (!text) {
-            allPartsA = new Set();
-            allPartsB = new Set();
-            selectedPartA = null;
-            selectedPartB = null;
-            renderOptions('A', []);
-            renderOptions('B', []);
-            updateMatcherResults();
-            return;
-        }
-
-        const skus = text.split(/[\s\t\n,]+/).filter(s => s.length > 0);
-        if (skus.length < 1) return;
-
-        const skuA = skus[0];
-        const skusB = skus.slice(1);
-
-        fullRawOptionsA = getOptionsForSku(skuA);
-        fullRawOptionsB = [];
-        const seenPartsB = new Set();
-
-        skusB.forEach(s => {
-            const opts = getOptionsForSku(s);
-            opts.forEach(o => {
-                const lowPart = o.part.toLowerCase().trim();
-                if (!seenPartsB.has(lowPart)) {
-                    seenPartsB.add(lowPart);
-                    fullRawOptionsB.push(o);
-                }
-            });
-        });
-
-        allPartsA = new Set(fullRawOptionsA.map(o => o.part.toLowerCase().trim()));
-        allPartsB = new Set(fullRawOptionsB.map(o => o.part.toLowerCase().trim()));
-
-        // Check if selected parts are still valid
-        const allPartsInFile = new Set(imageRows.map(r => r.ActualManufacturerPartNumber.toLowerCase().trim()));
-
-        if (fullRawOptionsA.length === 1) selectedPartA = fullRawOptionsA[0].part;
-        else if (selectedPartA && !allPartsInFile.has(selectedPartA.toLowerCase().trim())) selectedPartA = null;
-
-        if (fullRawOptionsB.length === 1) selectedPartB = fullRawOptionsB[0].part;
-        else if (selectedPartB && !allPartsInFile.has(selectedPartB.toLowerCase().trim())) selectedPartB = null;
-
-        renderOptions('A', fullRawOptionsA);
-        renderOptions('B', fullRawOptionsB);
-        updateMatcherResults();
     }
 
     function renderOptions(type, options) {
@@ -1183,8 +1228,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const rowPart = row.ActualManufacturerPartNumber.toLowerCase().trim();
             const rowSku = row.PrSKU.toLowerCase().trim();
 
-            // Strictly only show SKUs that were in the input area (only for Lookup Mode)
-            if (matcherInputMode === 'lookup' && !inputSkus.has(rowSku)) return false;
+            // Strictly only show SKUs that were in the input area (if any input SKUs exist)
+            if (inputSkus.size > 0 && !inputSkus.has(rowSku)) return false;
 
             return (partA && rowPart === partA) || (partB && rowPart === partB);
         });
@@ -1542,19 +1587,26 @@ document.addEventListener('DOMContentLoaded', () => {
                         <th>SKU2</th>
                         <th>Status</th>
                         <th>Note</th>
+                        <th style="width: 50px;"></th>
                     </tr>
                 </thead>
                 <tbody>
         `;
 
-        cooExportData.forEach(row => {
+        cooExportData.forEach((row, idx) => {
             const statusTag = row.resolved ? `<span class="sku-tag danger">${row.resolved}</span>` : "";
+            const copyNoteJs = `navigator.clipboard.writeText('${row.note.replace(/'/g, "\\'")}').then(() => { const t = document.getElementById('toast'); t.textContent = 'Copied to clipboard'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); })`;
             tableHtml += `
                 <tr>
-                    <td class="option-part">${row.sku1}</td>
-                    <td class="option-part">${row.sku2}</td>
+                    <td><code class="option-part">${row.sku1}</code></td>
+                    <td><code class="option-part">${row.sku2}</code></td>
                     <td>${statusTag}</td>
                     <td><span class="text-dim" style="font-size: 0.85rem;">${row.note}</span></td>
+                    <td>
+                        <button class="icon-action-btn" onclick="${copyNoteJs}" title="Copy Note" style="background:transparent; border:none; cursor:pointer; color:var(--text-dim); transition:color 0.2s;">
+                            <i data-lucide="copy" style="width:16px; height:16px;"></i>
+                        </button>
+                    </td>
                 </tr>
             `;
         });
@@ -1629,8 +1681,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagToggleManualBtn = document.getElementById('tagToggleManualBtn');
     const tagManualToggleIcon = document.getElementById('tagManualToggleIcon');
     const tagManualToggleText = document.getElementById('tagManualToggleText');
+    const tagToggleFilterBtn = document.getElementById('tagToggleFilterBtn');
+    const tagFilterToggleIcon = document.getElementById('tagFilterToggleIcon');
+    const tagFilterToggleText = document.getElementById('tagFilterToggleText');
+    const tagFilterInternalInput = document.getElementById('tagFilterInternalInput');
+    const tagFilterSetupCard = document.getElementById('tagFilterSetupCard');
+    const tagSaveFilterBtn = document.getElementById('tagSaveFilterBtn');
+    const tagClearFilterBtn = document.getElementById('tagClearFilterBtn');
+    
+    // Database Toggle Elements
+    const tagToggleDatabaseBtn = document.getElementById('tagToggleDatabaseBtn');
+    const tagDatabaseToggleIcon = document.getElementById('tagDatabaseToggleIcon');
+    const tagDatabaseToggleText = document.getElementById('tagDatabaseToggleText');
+    const tagSectionDesc = document.getElementById('tagSectionDesc');
+    const tagSection1 = document.getElementById('tagSection1');
+    const tagSection2 = document.getElementById('tagSection2');
+
+    // New: Page Elements for Description/AI-style integration
+    const tagDescInput = document.getElementById('tagDescInput');
+    const tagDescLabel = document.getElementById('tagDescLabel');
+    const tagDescStatusArea = document.getElementById('tagDescStatusArea');
+    const tagDescFileName = document.getElementById('tagDescFileName');
+    const tagDescFileMeta = document.getElementById('tagDescFileMeta');
+    const changeTagDescBtn = document.getElementById('changeTagDescBtn');
+
+    const tagToggleDescViewBtn = document.getElementById('tagToggleDescViewBtn');
+    const tagDescToggleText = document.getElementById('tagDescToggleText');
+    const tagDescComparisonSection = document.getElementById('tagDescComparisonSection');
+    const tagDescComparisonResults = document.getElementById('tagDescComparisonResults');
 
     let masterTagData = new Map(); // SKU -> Map<MPN, { tagName: value }>
+    let tagCatalogData = new Map(); // SKU -> { name, desc, bullets }
     let tagExportData = [];
     let selectedTagPartA = null;
     let selectedTagPartB = null;
@@ -1645,11 +1726,26 @@ document.addEventListener('DOMContentLoaded', () => {
     let tagLoadedFilesList = [];
     let isTagInputsCollapsed = false;
     let isTagManualCollapsed = false;
+    let isTagFilterCollapsed = false;
+    let isTagDatabaseCollapsed = false;
+    let isTagDescViewVisible = false;
 
     // --- Tag Matcher Logic ---
     tagToggleInputsBtn.addEventListener('click', () => {
         isTagInputsCollapsed = !isTagInputsCollapsed;
         tagMatcherSidebar.classList.toggle('collapsed', isTagInputsCollapsed);
+        
+        // Sync filter and results states if collapsing all
+        if (isTagInputsCollapsed) {
+            if (tagFilterSetupCard) tagFilterSetupCard.style.display = 'none';
+            // Collapse setup also hides the Comparison Results for clean view
+            if (tagDescComparisonSection) tagDescComparisonSection.style.display = 'none';
+        } else {
+            // Respect individual toggle state for the independent card
+            if (tagFilterSetupCard) tagFilterSetupCard.style.display = isTagFilterCollapsed ? 'none' : 'block';
+            // Respect individual toggle for results
+            if (tagDescComparisonSection) tagDescComparisonSection.style.display = isTagDatabaseCollapsed ? 'none' : 'block';
+        }
 
         if (isTagInputsCollapsed) {
             tagToggleIcon.setAttribute('data-lucide', 'chevron-down');
@@ -1658,6 +1754,24 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             tagToggleIcon.setAttribute('data-lucide', 'chevron-up');
             tagToggleText.textContent = 'Collapse Setup';
+        }
+        lucide.createIcons();
+    });
+
+    tagToggleDatabaseBtn.addEventListener('click', () => {
+        isTagDatabaseCollapsed = !isTagDatabaseCollapsed;
+        // INDIVIDUAL TOGGLE: only hides the Results Section (not the sidebar uploader 1b)
+        if (tagDescComparisonSection) {
+            tagDescComparisonSection.style.display = isTagDatabaseCollapsed ? 'none' : 'block';
+        }
+
+        if (isTagDatabaseCollapsed) {
+            tagDatabaseToggleIcon.setAttribute('data-lucide', 'eye');
+            tagDatabaseToggleText.textContent = 'Show Product';
+            showToast("Product Details Comparison hidden.");
+        } else {
+            tagDatabaseToggleIcon.setAttribute('data-lucide', 'eye-off');
+            tagDatabaseToggleText.textContent = 'Hide Product';
         }
         lucide.createIcons();
     });
@@ -1673,6 +1787,22 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             tagManualToggleIcon.setAttribute('data-lucide', 'eye-off');
             tagManualToggleText.textContent = 'Hide Manual';
+        }
+        lucide.createIcons();
+    });
+
+    tagToggleFilterBtn.addEventListener('click', () => {
+        isTagFilterCollapsed = !isTagFilterCollapsed;
+        if (tagFilterSetupCard) {
+            tagFilterSetupCard.style.display = isTagFilterCollapsed ? 'none' : 'block';
+        }
+
+        if (isTagFilterCollapsed) {
+            tagFilterToggleIcon.setAttribute('data-lucide', 'eye');
+            tagFilterToggleText.textContent = 'Show Filter';
+        } else {
+            tagFilterToggleIcon.setAttribute('data-lucide', 'eye-off');
+            tagFilterToggleText.textContent = 'Hide Filter';
         }
         lucide.createIcons();
     });
@@ -1721,6 +1851,29 @@ document.addEventListener('DOMContentLoaded', () => {
                                         skuIdx = tempSkuIdx;
                                         mpnIdx = tempMpnIdx;
                                         foundHeader = true;
+
+                                        // Look ahead up to 3 rows to see if there is a human-readable header row (no '::' strings)
+                                        for (let walk = 1; walk <= 3; walk++) {
+                                            if (i + walk < rawRows.length) {
+                                                const nextRow = rawRows[i + walk];
+                                                if (nextRow && nextRow[skuIdx]) {
+                                                    const testSku = String(nextRow[skuIdx]).toLowerCase();
+                                                    // If this next row is clearly still a header (contains sku/listing/etc)
+                                                    if (testSku.includes('sku') || testSku.includes('listing')) {
+                                                        const cleanHeaders = Array.from(nextRow).map(h => String(h || "").trim());
+                                                        // Only use it if it's less "code-like", meaning fewer '::'
+                                                        const currentCodes = headers.filter(h => h.includes('::')).length;
+                                                        const nextCodes = cleanHeaders.filter(h => h.includes('::')).length;
+                                                        if (nextCodes < currentCodes) {
+                                                            headers = cleanHeaders;
+                                                            // We deliberately DO NOT advance headerRowIdx, because the original code
+                                                            // correctly skips header rows during data extraction checking `sku.includes('sku')`
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
                                         for (let j = 0; j < i; j++) {
                                             const topRow = rawRows[j];
                                             if (!topRow || !Array.isArray(topRow)) continue;
@@ -1767,7 +1920,37 @@ document.addEventListener('DOMContentLoaded', () => {
                                     let tempSkuIdx = normalized.findIndex(s => s && (s.includes('listing') || s.includes('prsku') || s === 'sku'));
                                     let tempMpnIdx = normalized.findIndex(s => s && (s.includes('manufacturer') || s.includes('mpn') || s.includes('part number')));
                                     if (tempSkuIdx !== -1 && tempMpnIdx !== -1) {
-                                        headerIdx = i; headers = parts; skuIdx = tempSkuIdx; mpnIdx = tempMpnIdx; foundHeader = true; break;
+                                        headerIdx = i; 
+                                        headers = parts.map(p => String(p || "").trim()); 
+                                        skuIdx = tempSkuIdx; 
+                                        mpnIdx = tempMpnIdx; 
+                                        foundHeader = true; 
+
+                                        // Look ahead up to 3 rows for better headers (CSV version)
+                                        for (let walk = 1; walk <= 3; walk++) {
+                                            if (i + walk < lines.length) {
+                                                const nextParts = getParts(lines[i + walk]);
+                                                if (nextParts && nextParts[skuIdx]) {
+                                                    const testSku = String(nextParts[skuIdx]).toLowerCase();
+                                                    if (testSku.includes('sku') || testSku.includes('listing')) {
+                                                        const cleanHeaders = nextParts.map(h => String(h || "").trim());
+                                                        const currentCodes = headers.filter(h => h.includes('::')).length;
+                                                        const nextCodes = cleanHeaders.filter(h => h.includes('::')).length;
+                                                        if (nextCodes < currentCodes) {
+                                                            headers = cleanHeaders;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        for (let j = 0; j < i; j++) {
+                                            const p = getParts(lines[j]);
+                                            if (!p) continue;
+                                            const fIdx = p.findIndex(cell => cell && String(cell).toLowerCase().includes('attributes'));
+                                            if (fIdx !== -1) { attrIdx = fIdx; break; }
+                                        }
+                                        break;
                                     }
                                 }
                                 if (foundHeader) {
@@ -1829,14 +2012,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     changeTagCsvBtn.addEventListener('click', () => {
+        masterTagData.clear();
+        tagCatalogData.clear();
+        tagFilesLoadedCount = 0;
+        tagLoadedFilesList = [];
+        tagCsvInfo.style.display = 'none';
         tagFileStatusArea.style.display = 'none';
         tagCsvLabel.style.display = 'flex';
         tagCsvInput.value = '';
-        masterTagData.clear();
-        tagFilesLoadedCount = 0;
-        tagLoadedFilesList = [];
-
-        // Also clear inputs and results
+        tagDescInput.value = '';
+        tagDescLabel.style.display = 'flex';
+        tagDescStatusArea.style.display = 'none';
+        tagDescComparisonSection.style.display = 'none';
+        tagDescComparisonResults.innerHTML = '<div class="empty-state" style="grid-column: span 2;"><p>Select options to see description comparison.</p></div>';
         tagSkuPairInput.value = '';
         tagResultsContainer.innerHTML = '<div class="empty-state"><p>Upload tag data and select options to see comparison.</p></div>';
         tagSkuASelectArea.innerHTML = '<p class="empty-text">Enter SKUs to see options</p>';
@@ -1845,12 +2033,203 @@ document.addEventListener('DOMContentLoaded', () => {
         manualTagOptionB.value = '';
         tagSkuAHeader.textContent = 'Select SKU A Option';
         tagSkuBHeader.textContent = 'Select SKU B Option';
+        isTagDescViewVisible = true;
+        showToast("All tag and description data reset.");
         lucide.createIcons();
     });
+
+
+
+    // New: Handle Tag Description Database Upload
+    tagDescInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        showToast(`Processing ${files.length} description file(s)...`);
+
+        for (const file of files) {
+            await new Promise((resolve) => {
+                const reader = new FileReader();
+                const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+                reader.onload = (ev) => {
+                    try {
+                        const data = isExcel ? new Uint8Array(ev.target.result) : ev.target.result;
+                        let rawRows = [];
+
+                        if (isExcel) {
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                        } else {
+                            const lines = data.split(/\r?\n/).filter(l => l.trim());
+                            rawRows = lines.map(line => {
+                                if (line.includes('\t')) return line.split('\t').map(s => s.trim().replace(/^["']|["']$/g, ''));
+                                return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^["']|["']$/g, ''));
+                            });
+                        }
+
+                        if (rawRows.length < 2) { resolve(); return; }
+                        let colMap = { sku: -1, part: -1, name: -1, desc: -1, bullets: [] };
+                        let bestMatchCount = -1;
+                        let headerRowIdx = -1;
+
+                        // Robust header detection (looking at first 30 rows) - Same logic as AI Analyst
+                        for (let tIdx = 0; tIdx < Math.min(rawRows.length, 30); tIdx++) {
+                            const row = rawRows[tIdx];
+                            if (!row || !Array.isArray(row)) continue;
+                            let tempMap = { sku: -1, part: -1, name: -1, desc: -1, bullets: [] };
+                            let matchCount = 0;
+
+                            row.forEach((cell, idx) => {
+                                const s = String(cell || "").toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
+                                if (!s) return;
+                                
+                                if (s.includes('wayfair listing') || s === 'sku' || s.includes('prsku') || s.includes('listing id')) { 
+                                    if (tempMap.sku === -1) { tempMap.sku = idx; matchCount++; }
+                                } 
+                                else if (s.includes('manufacturer part number') || s.includes('mpn') || s.includes('part number') || s.includes('model number')) { 
+                                    if (tempMap.part === -1) { tempMap.part = idx; matchCount++; }
+                                } 
+                                else if (s.includes('marketing copy') || s.includes('description') || s.includes('copy') || s.includes('listing text') || s.includes('listing description') || s.includes('about the product')) { 
+                                    if (tempMap.desc === -1) { tempMap.desc = idx; matchCount++; }
+                                } 
+                                else if (s.includes('bullet') || s.includes('feature')) { 
+                                    if (!tempMap.bullets.includes(idx)) { tempMap.bullets.push(idx); matchCount++; }
+                                } 
+                                else if (s.includes('product name') || s.includes('title') || s.includes('item name') || s.includes('product title')) {
+                                    if (tempMap.name === -1) { tempMap.name = idx; matchCount++; }
+                                }
+                            });
+
+                            if (tempMap.sku !== -1 || tempMap.part !== -1) {
+                                if (matchCount > bestMatchCount) {
+                                    bestMatchCount = matchCount;
+                                    headerRowIdx = tIdx;
+                                    colMap = tempMap;
+                                }
+                            }
+                        }
+
+                        if (headerRowIdx !== -1) {
+                            for (let i = headerRowIdx + 1; i < rawRows.length; i++) {
+                                const row = rawRows[i];
+                                if (!row) continue;
+                                const skuValue = colMap.sku !== -1 ? String(row[colMap.sku] || "").trim().toLowerCase() : "";
+                                const partValue = colMap.part !== -1 ? String(row[colMap.part] || "").trim().toLowerCase() : "";
+                                if (!skuValue && !partValue) continue;
+
+                                const entry = {
+                                    name: colMap.name !== -1 ? String(row[colMap.name] || "").trim() : "",
+                                    desc: colMap.desc !== -1 ? String(row[colMap.desc] || "").trim() : "",
+                                    bullets: colMap.bullets.map(idx => String(row[idx] || "").trim()).filter(Boolean)
+                                };
+                                
+                                // Strict indexing logic
+                                const hasData = entry.name || entry.desc || entry.bullets.length > 0;
+                                if (hasData) {
+                                    // ONLY save the SKU-level data if it's the specific "Wayfair SKU" master row
+                                    if (skuValue && partValue === 'wayfair sku') {
+                                        tagCatalogData.set(skuValue, entry);
+                                    }
+                                    
+                                    // For other rows, index by the specific part number
+                                    if (partValue && partValue !== 'wayfair sku') {
+                                        tagCatalogData.set(partValue, entry);
+                                    }
+                                }
+                            }
+                        }
+                        resolve();
+                    } catch (err) {
+                        console.error("Error loading descriptions:", err);
+                        resolve();
+                    }
+                };
+
+                if (isExcel) reader.readAsArrayBuffer(file);
+                else reader.readAsText(file);
+            });
+        }
+
+        tagDescFileName.textContent = files.length > 1 ? `${files.length} files loaded` : files[0].name;
+        tagDescFileMeta.textContent = `${tagCatalogData.size.toLocaleString()} SKUs/MPNs records processed.`;
+        tagDescLabel.style.display = 'none';
+        tagDescStatusArea.style.display = 'flex';
+        tagDescInfo.style.display = 'flex';
+
+        isTagDescViewVisible = true;
+        tagDescComparisonSection.style.display = 'block';
+
+
+        showToast("Description records updated.");
+        if (currentTagSkus.length > 0) performTagComparison();
+        lucide.createIcons();
+    });
+
+
+    changeTagDescBtn.addEventListener('click', () => {
+        tagCatalogData.clear();
+        tagDescInput.value = '';
+        tagDescLabel.style.display = 'flex';
+        tagDescStatusArea.style.display = 'none';
+        tagDescComparisonSection.style.display = 'none';
+        showToast("Description records cleared.");
+    });
+
+    // New: Remove old toggle listener since we're making it always show when data exists
+
+
+    function renderTagDescView(sku1, sku2) {
+        if (!tagCatalogData || tagCatalogData.size === 0) return;
+        tagDescComparisonResults.innerHTML = '';
+        
+        // Find best data match: try SKU first (case insensitive), then selected parts
+        const findData = (sku, part) => {
+            const s = (sku || "").trim().toLowerCase();
+            const p = (part || "").trim().toLowerCase();
+            if (s && tagCatalogData.has(s)) return tagCatalogData.get(s);
+            if (p && tagCatalogData.has(p)) return tagCatalogData.get(p);
+            return null;
+        };
+
+
+        const data1 = findData(sku1, selectedTagPartA);
+        const data2 = findData(sku2, selectedTagPartB);
+
+        const renderCol = (data, identifier) => {
+            if (!data) return `<div class="glass-card"><p class="empty-text">No description data found for SKU/MPN: ${identifier || '?'}</p></div>`;
+
+            return `
+                <div class="glass-card" style="padding: 1.5rem;">
+                    <h3 style="font-size: 1.1rem; color: var(--accent-main); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--card-border);">SKU ${identifier}</h3>
+                    <div class="mb-1">
+                        <label style="font-weight: 800; font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase;">Product Name</label>
+                        <p style="font-size: 0.95rem; line-height: 1.5; font-weight: 500;">${data.name || 'N/A'}</p>
+                    </div>
+                    <div class="mb-1">
+                        <label style="font-weight: 800; font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase;">Description</label>
+                        <p style="font-size: 0.9rem; line-height: 1.6; padding-right: 5px;">${data.desc || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <label style="font-weight: 800; font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase;">Feature Bullets</label>
+                        <ul style="padding-left: 1.25rem; margin-top: 0.5rem; font-size: 0.85rem;">
+                            ${data.bullets.map(b => `<li style="margin-bottom: 0.4rem; line-height: 1.4;">${b}</li>`).join('') || '<li>N/A</li>'}
+                        </ul>
+                    </div>
+                </div>
+            `;
+        };
+
+        tagDescComparisonResults.innerHTML = renderCol(data1, sku1) + renderCol(data2, sku2);
+    }
+
+
+
 
     clearTagBtn.addEventListener('click', () => {
         tagSkuPairInput.value = '';
         tagResultsContainer.innerHTML = '<div class="empty-state"><p>Upload tag data and select options to see comparison.</p></div>';
+        tagDescComparisonResults.innerHTML = '<div class="empty-state" style="grid-column: span 2;"><p>Select options to see description comparison.</p></div>';
         tagSkuASelectArea.innerHTML = '<p class="empty-text">Enter SKUs to see options</p>';
         tagSkuBSelectArea.innerHTML = '<p class="empty-text">Enter SKUs to see options</p>';
         manualTagOptionA.value = '';
@@ -1877,6 +2256,31 @@ document.addEventListener('DOMContentLoaded', () => {
     tagSkuPairInput.addEventListener('input', lookupTagOptions);
     manualTagOptionA.addEventListener('input', lookupTagOptions);
     manualTagOptionB.addEventListener('input', lookupTagOptions);
+
+    // Initial load for saved filters
+    const savedTagFilters = localStorage.getItem('tag_matcher_filters');
+    if (savedTagFilters && tagFilterInternalInput) {
+        tagFilterInternalInput.value = savedTagFilters;
+    }
+
+    if (tagSaveFilterBtn) {
+        tagSaveFilterBtn.addEventListener('click', () => {
+            const filters = tagFilterInternalInput.value;
+            localStorage.setItem('tag_matcher_filters', filters);
+            showToast("Filter tags saved to browser!");
+        });
+    }
+
+    if (tagClearFilterBtn) {
+        tagClearFilterBtn.addEventListener('click', () => {
+            tagFilterInternalInput.value = '';
+            localStorage.removeItem('tag_matcher_filters');
+            performTagComparison();
+            showToast("Filters cleared.");
+        });
+    }
+
+    tagFilterInternalInput.addEventListener('input', performTagComparison);
 
     tagSkuASearch.addEventListener('input', (e) => {
         tagSearchQueryA = e.target.value.toLowerCase().trim();
@@ -1924,6 +2328,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const skuB = skus[1] || null;
 
         currentTagSkus = [skuA, skuB].filter(Boolean);
+
+        if (isTagDescViewVisible) {
+            renderTagDescView(skuA, skuB);
+        }
 
         // Update Labels
         manualTagOptionALabel.textContent = `${skuA} Options`;
@@ -2106,15 +2514,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Split CamelCase or underscores
-        clean = clean.replace(/([a-z])([A-Z])/g, '$1 $2')
-            .replace(/_/g, ' ')
-            .toLowerCase();
+        // We only lowercase/title-case if we actually find machine-like patterns
+        if (clean.includes('_') || (/[a-z][A-Z]/.test(clean)) || clean.includes('::')) {
+            clean = clean.replace(/([a-z])([A-Z])/g, '$1 $2')
+                .replace(/_/g, ' ')
+                .toLowerCase();
+            
+            // Title Case
+            return clean.split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
 
-        // Title Case
-        return clean.split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
+        return clean;
     }
+
+
 
     function performTagComparison() {
         if (!selectedTagPartA || !selectedTagPartB) return;
@@ -2135,13 +2550,34 @@ document.addEventListener('DOMContentLoaded', () => {
             'store', 'class id', 'class name',
             'attributes why', 'attributes why additional', 'is attributes edited'
         ];
+        
+        const userFilters = tagFilterInternalInput.value.split('\n')
+            .map(t => t.trim().toLowerCase())
+            .filter(Boolean);
 
-        const allTags = Array.from(new Set([...Object.keys(data1), ...Object.keys(data2)]))
+        const allTagsList = Array.from(new Set([...Object.keys(data1), ...Object.keys(data2)]))
             .filter(tag => {
                 if (!tag) return false;
                 const lower = tag.toLowerCase().trim();
+                const human = humanizeTagName(tag).toLowerCase();
+                
+                // If user entered filters, prioritize showing them even if they're in standard exclusion list
+                if (userFilters.length > 0 && userFilters.some(f => lower.includes(f) || human.includes(f))) {
+                    return true;
+                }
+
                 return !excludedTags.some(ex => lower.includes(ex));
             });
+
+        // Points 2: De-duplicate by humanized name to avoid visually identical rows 
+        // that come from multiple raw keys (e.g. core::width vs attribute_width)
+        const seenHumanNames = new Set();
+        const allTags = allTagsList.filter(tag => {
+            const human = humanizeTagName(tag);
+            if (seenHumanNames.has(human)) return false;
+            seenHumanNames.add(human);
+            return true;
+        });
 
         allTags.forEach(tag => {
             const val1 = data1[tag] || "";
@@ -2157,7 +2593,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         renderTagResults(selectedTagPartA, selectedTagPartB);
+        
+        if (isTagDescViewVisible) {
+            renderTagDescView(currentTagSkus[0], currentTagSkus[1]);
+        }
     }
+
 
     function renderTagResults(label1, label2) {
         tagResultsContainer.innerHTML = '';
@@ -2167,30 +2608,48 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Apply filtering
+        // Apply filtering logic based on current tag filter
         const filteredData = tagExportData.filter(row => {
             if (currentTagFilter === 'false') return !row.match;
-            if (currentTagFilter === 'true') return row.match;
+            
+            // Only apply user keywords when the "filtered" tab is active
+            if (currentTagFilter === 'filtered') {
+                const userFilters = tagFilterInternalInput.value.split('\n')
+                    .map(t => t.trim().toLowerCase())
+                    .filter(Boolean);
+                
+                if (userFilters.length === 0) return false;
+
+                const rawTag = row.tag.toLowerCase();
+                const humanTag = humanizeTagName(row.tag).toLowerCase();
+                
+                return userFilters.some(f => rawTag.includes(f) || humanTag.includes(f));
+            }
+            
             return true;
         });
 
         if (filteredData.length === 0) {
-            tagResultsContainer.innerHTML = `<div class="empty-state"><p>No rows match the "${currentTagFilter}" filter.</p></div>`;
+            const filterLabel = {
+                'all': 'All', 'false': 'Only False', 'filtered': 'Only Filtered'
+            }[currentTagFilter];
+            tagResultsContainer.innerHTML = `<div class="empty-state"><p>No rows match the "${filterLabel}" filter.</p></div>`;
             return;
         }
 
         let tableHtml = `
-            <table class="data-table" style="width: 100%; border-collapse: collapse;">
+            <table class="data-table" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
                 <thead>
                     <tr>
-                        <th style="width: 35%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">Tag Name</th>
-                        <th style="width: 25%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">${label1}</th>
-                        <th style="width: 25%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">${label2}</th>
-                        <th style="width: 15%; text-align: center; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">Status</th>
+                        <th style="width: 22%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">Tag Name</th>
+                        <th style="width: 29%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">${label1}</th>
+                        <th style="width: 29%; text-align: left; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">${label2}</th>
+                        <th style="width: 20%; text-align: center; padding: 1rem; border-bottom: 2px solid var(--card-border); vertical-align: middle;">Status</th>
                     </tr>
                 </thead>
                 <tbody>
         `;
+
 
         filteredData.forEach(row => {
             const statusClass = row.match ? 'success' : 'danger';
@@ -2589,6 +3048,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let mpnToPrSku = new Map();     // MPN -> PrSKU (Listing)
     let aiResultsDB = new Map();   // "PrSKU-A|PrSKU-B" -> String (AI Response)
     let isAiProcessing = false;
+    let isAiCancelled = false;
+    const aiStopBatchBtn = document.getElementById('aiStopBatchBtn');
+
+    if (aiStopBatchBtn) {
+        aiStopBatchBtn.addEventListener('click', () => {
+            if (isAiProcessing) {
+                isAiCancelled = true;
+                aiStopBatchBtn.innerHTML = '<i data-lucide="loader" class="spin"></i> Stopping...';
+                if (window.lucide) lucide.createIcons();
+                showToast("Stopping analysis...");
+            }
+        });
+    }
 
     // --- API Key & Model Persistence ---
     const STORAGE_KEYS = {
@@ -2680,94 +3152,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Default Prompt
     const defaultAiPrompt = `Persona: Professional Wayfair Data Specialist
-
 You are a precise, expert analyst specializing in Wayfair product listings. Speak in clear, professional English. Your role is to compare TWO SKUs (products) from Wayfair data and calculate the similarity percentage. Always refer to the products by their actual SKU IDs provided in the input, prefixed with "SKU " and in ALL UPPERCASE (e.g., if ID is cbzr1097, write SKU CBZR1097).
 
-- Listing Product Name
-
-- Description  
-
-- Feature Bullets
-
-
-
 Output a single similarity score (0-100%) based on identical or near-identical content. Differences in color, finish, dimensions, or weight count as "option variants" (not core differences). Flag true separators only if they impact:
-
 - Design/Style
-
 - Material
-
 - Functions
-
 - Patterns
-
 - Quantity
 
 For every distinct pair found in the data, generate a separate analysis.
 
-
-
-## Input Format
-
-You receive data for two products, identified as SKU A and SKU B. Each identifier is followed by its actual SKU ID. Use these actual IDs in your final report, prefixed with "SKU " and in ALL UPPERCASE, thay vì các tên mặc định "SKU A" hoặc "SKU B".
-
-- Product Name
-
-- Full Description
-
-- All Feature Bullets
-
-
-
 ## Step-by-Step Process
-
-1. **Extract Text**: Quote exact text from each section for both SKUs.
-
-2. **Compare Sections**: Analyze word-for-word similarity per section (e.g., 90% match if phrasing identical except minor words).
-
-3. **Calculate Overall %**: Average the 3 sections' similarity (e.g., Names 100%, Desc 80%, Bullets 90% = 90% total). Explain math briefly.
-
-4. **Differences**:
-
-   - **Core Separators** (if any): List with evidence (e.g., "Different material: [SKU_ID_1] wood vs. [SKU_ID_2] metal – separate products").
-
-   - **Option Variants** (if any): List (e.g., "Color variant: [SKU_ID_1] blue vs. [SKU_ID_2] red").
-
+1. **Compare Sections**: Analyze word-for-word similarity per section (e.g., 90% match if phrasing identical except minor words).
+2. **Calculate Overall %**: Average the 3 sections' similarity (e.g., Names 100%, Desc 80%, Bullets 90% = 90% total). Explain math briefly.
+3. **Differences**:
+   - **Core Separators** (if any): List with evidence.
+   - **Option Variants** (if any): List differences.
    - If identical: State "No separating differences; potential duplicates."
 
-
-
 ## Output Format (Always Use This Template)
-
 **Similarity Score: [X]%**
 
-
-
 **Section Breakdown:**
-
-| Section | [SKU_ID_1_UPPER] Text | [SKU_ID_2_UPPER] Text | Similarity % |
-
-|---------|------------|------------|--------------|
-
-| Product Name | [Quote] | [Quote] | [X]% |
-
-| Description | [Quote] | [Quote] | [X]% |
-
-| Feature Bullets | [Quote all] | [Quote all] | [X]% |
-
-
+| Section | Similarity % |
+|---------|--------------|
+| Product Name | [X]% |
+| Description | [X]% |
+| Feature Bullets | [X]% |
 
 **Core Separators:** [List or "None"]
 
-
-
 **Option Variants:** [List or "None"]
 
-
-
-**Recommendation:** [Merge/Duplicate/Variants/Separate + 1-sentence reason + 1-sentence note detailing differences using actual SKU IDs in "SKU [ID_UPPERCASE]" format].
-
-
+**Recommendation:** [Merge/Duplicate/Variants/Separate + 1-sentence reason + actual SKU IDs in "SKU [ID_UPPERCASE]" format].
 
 Example: If names match 100%, desc 85% (minor rephrase), bullets 95% (same features), variants in color: Score 93%. Variants: Color. Recommendation: Variants under one parent.`;
     aiPromptInput.value = defaultAiPrompt;
@@ -2817,11 +3235,16 @@ Example: If names match 100%, desc 85% (minor rephrase), bullets 95% (same featu
                             } 
                             // Feature Bullets (Can be multiple columns)
                             else if (s.includes('bullet') || s.includes('feature')) { 
-                                tempMap.bullets.push(idx); 
-                                matchCount++;
+                                if (!tempMap.bullets.includes(idx)) {
+                                    tempMap.bullets.push(idx); 
+                                    matchCount++;
+                                }
                             } 
                             // Product Name
-                            else if (s.includes('name') || s.includes('title') || s.includes('product')) { 
+                            else if (s === 'product name') {
+                                if (tempMap.name === -1) { tempMap.name = idx; matchCount++; }
+                            }
+                            else if ((s.includes('name') || s.includes('title') || s.includes('product')) && !s.includes('name on site')) { 
                                 if (tempMap.name === -1) { tempMap.name = idx; matchCount++; }
                             }
                         });
@@ -2861,15 +3284,24 @@ Example: If names match 100%, desc 85% (minor rephrase), bullets 95% (same featu
 
                             // If this row is the "Parent" (Wayfair SKU row), extract marketing content
                             if (partNum === "wayfair sku" || partNum.includes("wayfair sku")) {
-                                const bullets = colMap.bullets.map(bIdx => {
-                                    return String(row[bIdx] || "").trim().replace(/^["']+|["']+$/g, '');
-                                }).filter(b => b && b.toLowerCase() !== "text" && b.toLowerCase() !== "conditional");
+                                let allBullets = [];
+                                colMap.bullets.forEach(bIdx => {
+                                    const raw = String(row[bIdx] || "").trim().replace(/^["']+|["']+$/g, '');
+                                    if (raw) {
+                                        // Split by newline in case a cell contains multiple bullets
+                                        const lines = raw.split(/\r?\n/).map(l => l.trim().replace(/^[-*•]\s*/, '')).filter(l => l);
+                                        allBullets = allBullets.concat(lines);
+                                    }
+                                });
+                                // Uniquify bullets
+                                const uniqueBullets = [...new Set(allBullets)]
+                                    .filter(b => b.toLowerCase() !== "text" && b.toLowerCase() !== "conditional");
 
                                 aiCatalogData.set(prSku, {
                                     sku: prSkuRaw, // Keep original casing for display
                                     name: colMap.name !== -1 ? String(row[colMap.name] || "").trim().replace(/^["']+|["']+$/g, '') : "",
                                     desc: colMap.desc !== -1 ? String(row[colMap.desc] || "").trim().replace(/^["']+|["']+$/g, '') : "",
-                                    bullets: bullets
+                                    bullets: uniqueBullets
                                 });
                                 fullDataCount++;
                             }
@@ -2997,7 +3429,13 @@ Example: If names match 100%, desc 85% (minor rephrase), bullets 95% (same featu
         // -----------------------------------------------------------------
 
         isAiProcessing = true;
+        isAiCancelled = false;
         aiProcessBatchBtn.innerHTML = '<i data-lucide="loader" class="spin"></i> Processing...';
+        if (aiStopBatchBtn) {
+            aiStopBatchBtn.style.display = 'flex';
+            aiStopBatchBtn.innerHTML = '<i data-lucide="x-octagon"></i> Stop';
+        }
+        if (window.lucide) lucide.createIcons();
         aiProgressArea.style.display = 'block';
         aiProgressText.textContent = "Analyzing...";
         aiErrorLogArea.style.display = 'none';
@@ -3008,6 +3446,10 @@ Example: If names match 100%, desc 85% (minor rephrase), bullets 95% (same featu
         const systemPrompt = aiPromptInput.value.trim();
 
         for (const pair of pairsToProcess) {
+            if (isAiCancelled) {
+                break;
+            }
+
             const input1 = pair.sku1.toLowerCase().trim();
             const input2 = pair.sku2.toLowerCase().trim();
 
@@ -3017,17 +3459,11 @@ Example: If names match 100%, desc 85% (minor rephrase), bullets 95% (same featu
 
             const key = getPairKey(s1, s2);
 
-            // Skip if exists unless forceReanalyze is true
-            if (aiResultsDB.has(key) && !forceReanalyze) {
-                completed++;
-                updateAiProgress(completed, pairsToProcess.length);
-                continue;
-            }
-
             const data1 = aiCatalogData.get(s1);
             const data2 = aiCatalogData.get(s2);
 
             if (!data1 || !data2) {
+                if (isAiCancelled) break; 
                 const missing = [];
                 if (!data1) missing.push(input1);
                 if (!data2) missing.push(input2);
@@ -3042,31 +3478,45 @@ Example: If names match 100%, desc 85% (minor rephrase), bullets 95% (same featu
                 continue;
             }
 
+            const cleanText = (str) => String(str || "").replace(/\s{2,}/g, ' ').trim();
+
             const promptText = `
-${systemPrompt}
+${systemPrompt.trim()}
 
 ### INPUT DATA:
 SKU A ID: ${data1.sku}
-Product Name: ${data1.name}
-Description: ${data1.desc}
+Product Name: ${cleanText(data1.name)}
+Description: ${cleanText(data1.desc)}
 Feature Bullets:
-${data1.bullets.map(b => '- ' + b).join('\n')}
+${data1.bullets.map(b => '- ' + cleanText(b)).join('\n')}
 
 SKU B ID: ${data2.sku}
-Product Name: ${data2.name}
-Description: ${data2.desc}
+Product Name: ${cleanText(data2.name)}
+Description: ${cleanText(data2.desc)}
 Feature Bullets:
-${data2.bullets.map(b => '- ' + b).join('\n')}
+${data2.bullets.map(b => '- ' + cleanText(b)).join('\n')}
 
 REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toUpperCase()}" and "[SKU_ID_2_UPPER]" with "SKU ${data2.sku.toUpperCase()}". Throughout the analysis, always prefix SKU IDs with "SKU " and write them in ALL CAPS.
-`;
+`.replace(/\n{3,}/g, '\n\n').trim();
+
+
+
+            // Skip if exists unless forceReanalyze is true
+            if (aiResultsDB.has(key) && !forceReanalyze) {
+                completed++;
+                updateAiProgress(completed, pairsToProcess.length);
+                continue;
+            }
 
             try {
                 await new Promise(r => setTimeout(r, 1000));
+                if (isAiCancelled) break;
                 const responseText = await callGeminiApi(promptText);
+                if (isAiCancelled) break;
                 aiResultsDB.set(key, responseText);
                 await saveResultToDB(key, responseText); // Save to permanent storage
             } catch (err) {
+                if (isAiCancelled) break;
                 const errMsg = err.message || "Unknown API error";
                 aiErrorLogArea.style.display = 'block';
                 const li = document.createElement('li');
@@ -3083,11 +3533,13 @@ REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toU
             updateAiProgress(completed, pairsToProcess.length);
         }
 
-        aiProgressText.textContent = "Completed";
+        aiProgressText.textContent = isAiCancelled ? "Stopped" : "Completed";
         isAiProcessing = false;
         aiProcessBatchBtn.innerHTML = '<i data-lucide="bot"></i> Analyze with AI';
-        showToast("Batch analysis completed.");
-        lucide.createIcons();
+        if (aiStopBatchBtn) aiStopBatchBtn.style.display = 'none';
+        showToast(isAiCancelled ? "Analysis stopped." : "Batch analysis completed.");
+        if (isAiCancelled) isAiCancelled = false;
+        if (window.lucide) lucide.createIcons();
     });
 
     function updateAiProgress(completed, total) {
@@ -3114,6 +3566,8 @@ REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toU
         const s2 = mpnToPrSku.get(input2) || input2;
 
         const key = getPairKey(s1, s2);
+        const d1 = aiCatalogData.get(s1);
+        const d2 = aiCatalogData.get(s2);
 
         aiQueryResult.innerHTML = `<div style="margin-bottom:15px; display:flex; gap:0.5rem; align-items:center;">
              <span class="sku-tag uppercase-exception" style="background:#8b5cf6;color:white;font-size:1rem;padding:0.4rem 0.8rem;">${input1}</span> 
@@ -3121,10 +3575,20 @@ REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toU
              <span class="sku-tag uppercase-exception" style="background:#ec4899;color:white;font-size:1rem;padding:0.4rem 0.8rem;">${input2}</span>
         </div>`;
 
+        const getOrigText = (section, origData) => {
+            if (!origData) return "<em style='color:#94a3b8;'>[Data not loaded]</em>";
+            if (section.toLowerCase().includes('name')) return origData.name || "";
+            if (section.toLowerCase().includes('desc')) return origData.desc || "";
+            if (section.toLowerCase().includes('bullet')) {
+                if (!origData.bullets || origData.bullets.length === 0) return "";
+                return "- " + origData.bullets.join("<br/>- ");
+            }
+            return "";
+        };
+
         if (aiResultsDB.has(key)) {
             const rawText = aiResultsDB.get(key);
 
-            // Handle markdown specifically for tables
             let htmlChunks = [];
             const lines = rawText.split('\n');
             let inTable = false;
@@ -3132,12 +3596,40 @@ REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toU
 
             lines.forEach(line => {
                 if (line.trim().startsWith('|')) {
-                    if (!inTable) { inTable = true; tableHtml = "<div style='overflow-x: auto; margin: 15px 0;'><table style='border-collapse: collapse; width: 100%; font-size: 0.85rem;'><tbody>"; }
-                    if (line.includes('---')) return; // skip separator
+                    if (!inTable) { 
+                        inTable = true; 
+                        tableHtml = "<div style='overflow-x: auto; margin: 15px 0;'><table style='border-collapse: collapse; width: 100%; font-size: 0.85rem;'><tbody>"; 
+                        // Override header row completely
+                        if (line.toLowerCase().includes('section')) {
+                            tableHtml += `<tr>
+                                <td style="border: 1px solid var(--card-border); padding: 8px; font-weight: bold; background: var(--bg-alt);">Section</td>
+                                <td style="border: 1px solid var(--card-border); padding: 8px; font-weight: bold; background: var(--bg-alt);">SKU ${input1.toUpperCase()} Text</td>
+                                <td style="border: 1px solid var(--card-border); padding: 8px; font-weight: bold; background: var(--bg-alt);">SKU ${input2.toUpperCase()} Text</td>
+                                <td style="border: 1px solid var(--card-border); padding: 8px; font-weight: bold; background: var(--bg-alt);">Similarity %</td>
+                            </tr>`;
+                            return;
+                        }
+                    }
+                    if (line.includes('---------')) return; // skip separator
+
                     const rowCells = line.split('|').map(s => s.trim()).filter((s, i, arr) => i > 0 && i < arr.length - 1);
-                    // Remove quotes from cells (aggressive: all leading/trailing quotes)
                     const cleanCells = rowCells.map(c => c.trim().replace(/^["']+|["']+$/g, ''));
-                    tableHtml += "<tr>" + cleanCells.map(c => `<td style="border: 1px solid var(--card-border); padding: 8px;">${c}</td>`).join('') + "</tr>";
+                    
+                    if (cleanCells.length === 2 && !line.toLowerCase().includes('section')) {
+                        // Dynamically inject the 2 middle columns using local data
+                        const sectionName = cleanCells[0];
+                        const simScore = cleanCells[1];
+                        
+                        tableHtml += `<tr>
+                            <td style="border: 1px solid var(--card-border); padding: 8px;">${sectionName}</td>
+                            <td style="border: 1px solid var(--card-border); padding: 8px;">${getOrigText(sectionName, d1)}</td>
+                            <td style="border: 1px solid var(--card-border); padding: 8px;">${getOrigText(sectionName, d2)}</td>
+                            <td style="border: 1px solid var(--card-border); padding: 8px; text-align: center; font-weight: 500;">${simScore}</td>
+                        </tr>`;
+                    } else if (cleanCells.length > 2 && !line.toLowerCase().includes('section')) {
+                         // Fallback in case old cached data with 4 columns is queried
+                         tableHtml += "<tr>" + cleanCells.map(c => `<td style="border: 1px solid var(--card-border); padding: 8px;">${c}</td>`).join('') + "</tr>";
+                    }
                 } else {
                     if (inTable) {
                         inTable = false;
@@ -3157,9 +3649,33 @@ REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toU
             aiQueryResult.appendChild(resultDiv);
 
         } else {
-            const notFoundMsg = document.createElement('div');
-            notFoundMsg.innerHTML = `<p class="empty-text" style="color:#ef4444; font-weight:600; text-align:left;">Chưa được phân tích (Not yet analyzed).</p>`;
-            aiQueryResult.appendChild(notFoundMsg);
+            const sections = ["Product Name", "Description", "Feature Bullets"];
+            let tableHtml = `<p class="empty-text" style="color:#ef4444; font-weight:600; text-align:left; margin-bottom:10px;">Chưa được phân tích (Not yet analyzed).</p>
+                <div style='overflow-x: auto; margin: 15px 0;'>
+                <table style='border-collapse: collapse; width: 100%; font-size: 0.85rem;'>
+                <thead>
+                    <tr>
+                        <th style="border: 1px solid var(--card-border); padding: 8px; font-weight: bold; background: var(--bg-alt); text-align:left;">Section</th>
+                        <th style="border: 1px solid var(--card-border); padding: 8px; font-weight: bold; background: var(--bg-alt); text-align:left;">SKU ${input1.toUpperCase()} Text</th>
+                        <th style="border: 1px solid var(--card-border); padding: 8px; font-weight: bold; background: var(--bg-alt); text-align:left;">SKU ${input2.toUpperCase()} Text</th>
+                        <th style="border: 1px solid var(--card-border); padding: 8px; font-weight: bold; background: var(--bg-alt); text-align:left;">Similarity %</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            
+            sections.forEach(sec => {
+                tableHtml += `<tr>
+                    <td style="border: 1px solid var(--card-border); padding: 8px; font-weight: bold; background: var(--bg-alt);">${sec}</td>
+                    <td style="border: 1px solid var(--card-border); padding: 8px;">${getOrigText(sec, d1)}</td>
+                    <td style="border: 1px solid var(--card-border); padding: 8px;">${getOrigText(sec, d2)}</td>
+                    <td style="border: 1px solid var(--card-border); padding: 8px; text-align:center;">-</td>
+                </tr>`;
+            });
+
+            tableHtml += "</tbody></table></div>";
+            const resultDiv = document.createElement('div');
+            resultDiv.innerHTML = tableHtml;
+            aiQueryResult.appendChild(resultDiv);
         }
     });
 
@@ -3240,6 +3756,11 @@ REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toU
         toast.textContent = message;
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // Initialize Icons
+    if (window.lucide) {
+        lucide.createIcons();
     }
 });
 

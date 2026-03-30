@@ -10,6 +10,9 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
         rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -98,7 +101,7 @@
                                 <span id="displayFileName" class="file-name">filename.csv</span>
                                 <span id="displayFileMeta" class="file-meta">0 records</span>
                             </div>
-                            <button id="changeFileBtn" class="change-file-btn">Change</button>
+                            <button id="changeFileBtn" class="change-file-btn"><i data-lucide="refresh-ccw" style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Change</button>
                         </div>
 
                         <!-- Mode: File -->
@@ -155,7 +158,7 @@
                                     <span id="stFileName" class="file-name">filename.csv</span>
                                     <span id="stFileMeta" class="file-meta">Ready to analyze</span>
                                 </div>
-                                <button id="changeStFileBtn" class="change-file-btn">Change</button>
+                                <button id="changeStFileBtn" class="change-file-btn"><i data-lucide="refresh-ccw" style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Change</button>
                             </div>
                         </div>
 
@@ -276,10 +279,8 @@
                             </div>
                             <div class="mode-toggles"
                                 style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
-                                <button id="matcherDataModePasteBtn" class="mode-btn active"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Paste</button>
-                                <button id="matcherDataModeFileBtn" class="mode-btn"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">File</button>
+                                <button id="matcherDataModePasteBtn" class="mode-btn active" style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"><i data-lucide="clipboard-paste" style="width: 14px; height: 14px;"></i>Paste</button>
+                                <button id="matcherDataModeFileBtn" class="mode-btn" style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim); display: flex; align-items: center; gap: 4px;"><i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>File</button>
                             </div>
                         </div>
 
@@ -292,7 +293,7 @@
                                 <span id="matcherCsvName" class="file-name">filename.csv</span>
                                 <span id="matcherCsvMeta" class="file-meta">0 records</span>
                             </div>
-                            <button id="changeMatcherCsvBtn" class="change-file-btn">Change</button>
+                            <button id="changeMatcherCsvBtn" class="change-file-btn"><i data-lucide="refresh-ccw" style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Change</button>
                         </div>
 
                         <!-- Mode: File -->
@@ -324,40 +325,33 @@
                                 <i data-lucide="layout-grid"></i>
                                 <h3>2. Input Selection</h3>
                             </div>
-                            <div class="mode-toggles">
-                                <button id="matcherModeLookupBtn" class="mode-btn active">SKU Pairs</button>
-                                <button id="matcherModePasteBtn" class="mode-btn">Option</button>
-                            </div>
                         </div>
 
-                        <!-- Mode: Lookup -->
-                        <div id="matcherLookupArea">
-                            <label class="input-label-premium">
+                        <!-- Combined Inputs -->
+                        <div id="matcherCombinedArea">
+                            <label class="input-label-premium" style="font-size: 0.9rem;">
                                 <i data-lucide="scan-barcode"></i>
-                                2 SKUs (Lookup Mode)
+                                SKU Pair
                             </label>
-                            <textarea id="skuPairInput" class="premium-textarea"
+                            <textarea id="skuPairInput" class="premium-textarea mb-1"
                                 placeholder="Paste SKU pair here...&#10;Example: SKU-A  SKU-B"
-                                style="height: 180px;"></textarea>
-                        </div>
+                                style="height: 60px; margin-bottom: 1.5rem;"></textarea>
 
-                        <!-- Mode: Paste -->
-                        <div id="matcherPasteArea" style="display: none;">
-                            <div class="mb-1">
-                                <label class="input-label-premium">
+                            <div class="mb-2">
+                                <label id="skuALabel" class="input-label-premium" style="font-size: 0.9rem;">
                                     <i data-lucide="type"></i>
                                     SKU A Options
                                 </label>
-                                <textarea id="skuAInput" class="premium-textarea" style="height: 120px;"
+                                <textarea id="skuAInput" class="premium-textarea" style="height: 100px;"
                                     placeholder="Paste SKU A options here...&#10;(Option Name, Part Number)"></textarea>
                             </div>
 
                             <div>
-                                <label class="input-label-premium">
+                                <label id="skuBLabel" class="input-label-premium" style="font-size: 0.9rem;">
                                     <i data-lucide="type"></i>
                                     SKU B Options
                                 </label>
-                                <textarea id="skuBInput" class="premium-textarea" style="height: 120px;"
+                                <textarea id="skuBInput" class="premium-textarea" style="height: 100px;"
                                     placeholder="Paste SKU B options here...&#10;(Option Name, Part Number)"></textarea>
                             </div>
                         </div>
@@ -369,7 +363,7 @@
                     <div class="selection-container">
                         <div class="premium-card">
                             <div class="card-header" style="padding-bottom: 0.5rem;">
-                                <h3>Select SKU A Option</h3>
+                                <h3><i data-lucide="check-circle" style="width:18px;height:18px;vertical-align:middle;margin-right:8px;color:var(--primary);"></i>Select SKU A Option</h3>
                             </div>
                             <div class="search-filter-wrapper mb-1">
                                 <i data-lucide="search" class="search-icon"></i>
@@ -382,7 +376,7 @@
                         </div>
                         <div class="premium-card">
                             <div class="card-header" style="padding-bottom: 0.5rem;">
-                                <h3>Select SKU B Option</h3>
+                                <h3><i data-lucide="check-circle" style="width:18px;height:18px;vertical-align:middle;margin-right:8px;color:var(--primary);"></i>Select SKU B Option</h3>
                             </div>
                             <div class="search-filter-wrapper mb-1">
                                 <i data-lucide="search" class="search-icon"></i>
@@ -446,7 +440,7 @@
                                     <span id="cooCsvName" class="file-name">filename.csv</span>
                                     <span id="cooCsvMeta" class="file-meta">0 records</span>
                                 </div>
-                                <button id="changeCooCsvBtn" class="change-file-btn">Change</button>
+                                <button id="changeCooCsvBtn" class="change-file-btn"><i data-lucide="refresh-ccw" style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Change</button>
                             </div>
                         </div>
                     </div>
@@ -521,6 +515,18 @@
                                 style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 0.5rem;"></i>Data
                             & Options Setup</span>
                         <div style="display: flex; gap: 0.5rem;">
+                            <button id="tagToggleFilterBtn" class="btn secondary"
+                                style="padding: 0.4rem 1rem; height: 40px; font-size: 0.85rem; border-radius: 10px;">
+                                <i data-lucide="eye-off" id="tagFilterToggleIcon"
+                                    style="width: 16px; height: 16px; margin-right: 0.25rem;"></i>
+                                <span id="tagFilterToggleText">Hide Filter</span>
+                            </button>
+                            <button id="tagToggleDatabaseBtn" class="btn secondary"
+                                style="padding: 0.4rem 1rem; height: 40px; font-size: 0.85rem; border-radius: 10px;">
+                                <i data-lucide="eye-off" id="tagDatabaseToggleIcon"
+                                    style="width: 16px; height: 16px; margin-right: 0.25rem;"></i>
+                                <span id="tagDatabaseToggleText">Hide Product</span>
+                            </button>
                             <button id="tagToggleManualBtn" class="btn secondary"
                                 style="padding: 0.4rem 1rem; height: 40px; font-size: 0.85rem; border-radius: 10px;">
                                 <i data-lucide="eye-off" id="tagManualToggleIcon"
@@ -563,8 +569,44 @@
                                         <i data-lucide="plus-circle"></i>
                                         <span>Add More</span>
                                     </label>
-                                    <button id="changeTagCsvBtn" class="change-file-btn danger"
-                                        title="Clear all data and start over">Reset All</button>
+                                    <button id="changeTagCsvBtn" class="change-file-btn danger" title="Clear all data and start over"><i data-lucide="trash" style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Reset All</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- New: Product Database for Descriptions -->
+                    <div class="premium-card" id="tagSectionDesc">
+                        <div class="header-title mb-1" style="margin-bottom: 1.5rem;">
+                            <i data-lucide="database"></i>
+                            <h3>1b. Product Database (Names/Descs)</h3>
+                        </div>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="tagDescInput" accept=".csv, .xlsx, .xls" multiple />
+                            <label for="tagDescInput" class="file-label" id="tagDescLabel">
+                                <i data-lucide="upload-cloud"></i>
+                                <span>Upload Description Records</span>
+                            </label>
+                            <div id="tagDescStatusArea" style="display: none; flex-direction: column; gap: 0.75rem;">
+                                <div id="tagDescInfo" class="file-info-card" style="margin-bottom: 0;">
+                                    <div class="file-icon-box" style="background: var(--success);">
+                                        <i data-lucide="file-spreadsheet"></i>
+                                    </div>
+                                    <div class="file-details">
+                                        <span id="tagDescFileName" class="file-name">filename.xlsx</span>
+                                        <span id="tagDescFileMeta" class="file-meta" style="color: var(--success); font-weight: 700;">0 SKUs extracted</span>
+                                    </div>
+                                </div>
+                                <div class="file-actions-row"
+                                    style="display: flex; gap: 0.75rem; justify-content: flex-end; align-items: center; margin-top: 0.75rem;">
+                                    <label for="tagDescInput" class="append-file-btn"
+                                        title="Add more files to current data">
+                                        <i data-lucide="plus-circle"></i>
+                                        <span>Add More</span>
+                                    </label>
+                                    <button id="changeTagDescBtn" class="change-file-btn danger"
+                                        style="padding: 0.4rem 0.8rem; border-radius: 8px;"><i data-lucide="trash"
+                                            style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Reset All</button>
                                 </div>
                             </div>
                         </div>
@@ -582,7 +624,7 @@
                         <div class="controls mt-1" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                             <button id="clearTagBtn" class="btn secondary"
                                 style="flex: 1; border-radius: 12px; height: 45px;">
-                                <i data-lucide="trash-2"></i>
+                                <i data-lucide="eraser"></i>
                                 Clear All Inputs
                             </button>
                         </div>
@@ -613,9 +655,45 @@
                 </div>
 
                 <div class="matcher-main">
-                    <div class="control-center-bar">
+                    <div class="premium-card mb-3" id="tagFilterSetupCard">
+                        <div class="card-header" style="padding-bottom: 0.75rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem;">
+                            <div class="header-title" style="white-space: nowrap;">
+                                <i data-lucide="filter"></i>
+                                <h3 style="margin: 0;">Filter Tag Names</h3>
+                            </div>
+                            <div class="header-actions" style="display: flex; gap: 0.75rem;">
+                                <button id="tagSaveFilterBtn" class="btn primary-outline btn-xs" title="Save filters to browser for next visit" style="padding: 0.4rem 0.8rem; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                                    <i data-lucide="save" style="width: 14px; height: 14px;"></i> Save
+                                </button>
+                                <button id="tagClearFilterBtn" class="btn secondary-outline btn-xs" title="Clear and reset filters" style="padding: 0.4rem 0.8rem; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-dim mb-1" style="font-size: 0.85rem;">Enter tag names or keywords to display (one per line). Only tags matching these will be shown in the analysis results. Leave empty to show all tags.</p>
+                        <textarea id="tagFilterInternalInput" class="premium-textarea" 
+                            placeholder="Enter keywords to display only specific tags (e.g. Dimensions, Weight)..." 
+                            style="height: 100px; font-size: 0.85rem;"></textarea>
+                    </div>
+
+                    <!-- Description Comparison - Visible by default, with more margin -->
+                    <div id="tagDescComparisonSection" class="premium-card" 
+                        style="padding: 2.25rem; width: 100%; margin: 2rem 0; border-left: 4px solid var(--accent-main);">
+                        <div class="header-title mb-1" style="border-bottom: 2px solid var(--card-border); padding-bottom: 1rem; margin-bottom: 2rem;">
+                            <i data-lucide="file-text" style="color: var(--accent-main); width: 24px; height: 24px;"></i>
+                            <h2 style="font-size: 1.4rem; font-weight: 700;">Product Details Comparison (Database)</h2>
+                        </div>
+                        <div id="tagDescComparisonResults" class="ai-cols-wrapper"
+                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem;">
+                            <div class="empty-state" style="grid-column: span 2; padding: 3rem;">
+                                <p style="font-size: 1.1rem; color: var(--text-dim);">Enter SKUs and select options above to load database descriptions.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-center-bar" style="margin-bottom: 2rem;">
                         <div class="control-group">
-                            <i data-lucide="intersect" class="control-icon"></i>
+                            <i data-lucide="link-2" class="control-icon"></i>
                             <div class="control-label">
                                 <h3>Shared Part Numbers Only</h3>
                                 <p>Only show part numbers common to both SKUs</p>
@@ -679,14 +757,14 @@
                                                 <i data-lucide="alert-circle"></i>
                                                 Only False
                                             </button>
-                                            <button class="filter-btn" data-filter="true">
-                                                <i data-lucide="check-circle"></i>
-                                                Only True
+                                            <button class="filter-btn" data-filter="filtered">
+                                                <i data-lucide="filter"></i>
+                                                Only Filtered
                                             </button>
                                         </div>
                                     </div>
                                 </div>
-                                <div id="tagResultsContainer" class="table-scroll-wrapper">
+                                <div id="tagResultsContainer" class="table-scroll-wrapper" style="min-height: 20rem;">
                                     <div class="empty-state">
                                         <p>Upload tag data and select options to see comparison.</p>
                                     </div>
@@ -695,8 +773,13 @@
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
+
+
+
+
 
         <!-- Tab: Exclusion Checker -->
         <div id="exclusionTab" class="tab-content">
@@ -723,10 +806,8 @@
                             </div>
                             <div class="mode-toggles"
                                 style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
-                                <button id="exclusionDataModePasteBtn" class="mode-btn active"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Paste</button>
-                                <button id="exclusionDataModeFileBtn" class="mode-btn"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">File</button>
+                                <button id="exclusionDataModePasteBtn" class="mode-btn active" style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"><i data-lucide="clipboard-paste" style="width: 14px; height: 14px;"></i>Paste</button>
+                                <button id="exclusionDataModeFileBtn" class="mode-btn" style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim); display: flex; align-items: center; gap: 4px;"><i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>File</button>
                             </div>
                         </div>
 
@@ -739,7 +820,7 @@
                                 <span id="exdisplayFileName" class="file-name">filename.csv</span>
                                 <span id="exdisplayFileMeta" class="file-meta">0 records</span>
                             </div>
-                            <button id="changeExclusionCsvBtn" class="change-file-btn">Change</button>
+                            <button id="changeExclusionCsvBtn" class="change-file-btn"><i data-lucide="refresh-ccw" style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Change</button>
                         </div>
 
                         <!-- Mode: File -->
@@ -828,12 +909,20 @@
                         data-lucide="settings-2"
                         style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 0.5rem;"></i>AI
                     Analysis Setup</span>
-                <button id="aiToggleInputsBtn" class="btn secondary"
-                    style="padding: 0.4rem 1rem; height: 40px; font-size: 0.85rem; border-radius: 10px;">
-                    <i data-lucide="chevron-up" id="aiToggleIcon"
-                        style="width: 16px; height: 16px; margin-right: 0.25rem;"></i>
-                    <span id="aiToggleText">Collapse Setup</span>
-                </button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="aiToggleConfigBtn" class="btn secondary"
+                        style="padding: 0.4rem 1rem; height: 40px; font-size: 0.85rem; border-radius: 10px;">
+                        <i data-lucide="eye-off" id="aiConfigToggleIcon"
+                            style="width: 16px; height: 16px; margin-right: 0.25rem;"></i>
+                        <span id="aiConfigToggleText">Hide Config</span>
+                    </button>
+                    <button id="aiToggleDbBatchBtn" class="btn secondary"
+                        style="padding: 0.4rem 1rem; height: 40px; font-size: 0.85rem; border-radius: 10px;">
+                        <i data-lucide="eye-off" id="aiDbBatchToggleIcon"
+                            style="width: 16px; height: 16px; margin-right: 0.25rem;"></i>
+                        <span id="aiDbBatchToggleText">Hide DB & Batch</span>
+                    </button>
+                </div>
             </div>
 
             <div class="main-grid" id="aiMainGrid">
@@ -936,7 +1025,7 @@
                                         <span id="aiCsvName" class="file-name">filename.xlsx</span>
                                         <span id="aiCsvMeta" class="file-meta">0 SKUs extracted</span>
                                     </div>
-                                    <button id="changeAiCsvBtn" class="change-file-btn">Change</button>
+                                    <button id="changeAiCsvBtn" class="change-file-btn"><i data-lucide="refresh-ccw" style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Change</button>
                                 </div>
                             </div>
                             <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">System Prompt (Instructions)</label>
@@ -951,9 +1040,12 @@
                             </div>
                             <label style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">Paste SKU pairs to analyze (comma or space/tab separated)</label>
                             <textarea id="aiBatchInput" class="premium-textarea" placeholder="SKU-A, SKU-B&#10;SKU-C, SKU-D" style="height: 350px;"></textarea>
-                            <div class="controls mt-1">
-                                <button id="aiProcessBatchBtn" class="btn primary w-100" style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); border-color: transparent;">
+                            <div class="controls mt-1" style="display: flex; gap: 0.5rem;">
+                                <button id="aiProcessBatchBtn" class="btn primary" style="flex: 1; background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); border-color: transparent;">
                                     <i data-lucide="bot"></i> Analyze with AI
+                                </button>
+                                <button id="aiStopBatchBtn" class="btn secondary" style="display: none; background: #fee2e2; color: #ef4444; border-color: #fca5a5; min-width: 130px; flex: 0 0 auto;">
+                                    <i data-lucide="x-octagon"></i> Stop
                                 </button>
                             </div>
                             <div id="aiProgressArea" style="display: none; margin-top: 1rem;">
@@ -984,7 +1076,7 @@
                                 <button id="aiQueryBtn" class="btn primary" style="flex: 1; background: #8b5cf6; border-color: #8b5cf6;">
                                     <i data-lucide="search"></i> Lookup
                                 </button>
-                                <button id="aiQueryClearBtn" class="btn secondary">Clear</button>
+                                <button id="aiQueryClearBtn" class="btn secondary"><i data-lucide="eraser"></i> Clear</button>
                             </div>
                             <div id="aiQueryResult" class="mt-2 text-content" style="padding: 1rem; background: var(--bg-main); border-radius: 12px; border: 1px solid var(--card-border); min-height: 250px; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;">
                                 <p class="empty-text">Result will appear here</p>
@@ -1020,3 +1112,6 @@
 </body>
 
 </html>
+
+
+
