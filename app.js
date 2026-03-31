@@ -1665,36 +1665,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagResultsContainer = document.getElementById('tagResultsContainer');
     const tagSkuASelectArea = document.getElementById('tagSkuASelectArea');
     const tagSkuBSelectArea = document.getElementById('tagSkuBSelectArea');
-    const manualTagOptionA = document.getElementById('manualTagOptionA');
-    const manualTagOptionB = document.getElementById('manualTagOptionB');
-    const manualTagOptionALabel = document.getElementById('manualTagOptionALabel');
-    const manualTagOptionBLabel = document.getElementById('manualTagOptionBLabel');
     const tagSkuAHeader = document.getElementById('tagSkuAHeader');
     const tagSkuBHeader = document.getElementById('tagSkuBHeader');
     const tagSkuASearch = document.getElementById('tagSkuASearch');
     const tagSkuBSearch = document.getElementById('tagSkuBSearch');
     const tagFilterOverlapBtn = document.getElementById('tagFilterOverlapBtn');
     const tagToggleInputsBtn = document.getElementById('tagToggleInputsBtn');
-    const tagMatcherSidebar = document.getElementById('tagMatcherSidebar');
     const tagToggleIcon = document.getElementById('tagToggleIcon');
     const tagToggleText = document.getElementById('tagToggleText');
-    const tagToggleManualBtn = document.getElementById('tagToggleManualBtn');
-    const tagManualToggleIcon = document.getElementById('tagManualToggleIcon');
-    const tagManualToggleText = document.getElementById('tagManualToggleText');
+    const tagUploadersRow = document.getElementById('tagUploadersRow');
     const tagToggleFilterBtn = document.getElementById('tagToggleFilterBtn');
     const tagFilterToggleIcon = document.getElementById('tagFilterToggleIcon');
     const tagFilterToggleText = document.getElementById('tagFilterToggleText');
-    const tagFilterInternalInput = document.getElementById('tagFilterInternalInput');
-    const tagFilterSetupCard = document.getElementById('tagFilterSetupCard');
-    const tagSaveFilterBtn = document.getElementById('tagSaveFilterBtn');
-    const tagClearFilterBtn = document.getElementById('tagClearFilterBtn');
-    
-    // Database Toggle Elements
     const tagToggleDatabaseBtn = document.getElementById('tagToggleDatabaseBtn');
     const tagDatabaseToggleIcon = document.getElementById('tagDatabaseToggleIcon');
     const tagDatabaseToggleText = document.getElementById('tagDatabaseToggleText');
-    const tagSectionDesc = document.getElementById('tagSectionDesc');
     const tagSection1 = document.getElementById('tagSection1');
+    const tagSectionDesc = document.getElementById('tagSectionDesc');
     const tagSection2 = document.getElementById('tagSection2');
 
     // New: Page Elements for Description/AI-style integration
@@ -1710,8 +1697,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagDescComparisonSection = document.getElementById('tagDescComparisonSection');
     const tagDescComparisonResults = document.getElementById('tagDescComparisonResults');
 
+    const tagOptionMapInput = document.getElementById('tagOptionMapInput');
+    const tagOptionMapLabel = document.getElementById('tagOptionMapLabel');
+    const tagOptionMapStatusArea = document.getElementById('tagOptionMapStatusArea');
+    const tagOptionMapFileName = document.getElementById('tagOptionMapFileName');
+    const tagOptionMapFileMeta = document.getElementById('tagOptionMapFileMeta');
+    const changeTagOptionMapBtn = document.getElementById('changeTagOptionMapBtn');
+    const tagSectionOptionMap = document.getElementById('tagSectionOptionMap');
+    const tagToggleOptionMapBtn = document.getElementById('tagToggleOptionMapBtn');
+    const tagOptionMapToggleIcon = document.getElementById('tagOptionMapToggleIcon');
+    const tagOptionMapToggleText = document.getElementById('tagOptionMapToggleText');
+
     let masterTagData = new Map(); // SKU -> Map<MPN, { tagName: value }>
     let tagCatalogData = new Map(); // SKU -> { name, desc, bullets }
+    let masterOptionMapData = new Map(); // SKU -> Map<MPN, constructedName>
     let tagExportData = [];
     let selectedTagPartA = null;
     let selectedTagPartB = null;
@@ -1724,8 +1723,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let tagOverlapOnly = false;
     let tagFilesLoadedCount = 0;
     let tagLoadedFilesList = [];
+    let tagDescLoadedFilesList = [];
+    let tagOptionMapLoadedFilesList = [];
     let isTagInputsCollapsed = false;
-    let isTagManualCollapsed = false;
     let isTagFilterCollapsed = false;
     let isTagDatabaseCollapsed = false;
     let isTagDescViewVisible = false;
@@ -1733,60 +1733,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Tag Matcher Logic ---
     tagToggleInputsBtn.addEventListener('click', () => {
         isTagInputsCollapsed = !isTagInputsCollapsed;
-        tagMatcherSidebar.classList.toggle('collapsed', isTagInputsCollapsed);
-        
-        // Sync filter and results states if collapsing all
-        if (isTagInputsCollapsed) {
-            if (tagFilterSetupCard) tagFilterSetupCard.style.display = 'none';
-            // Collapse setup also hides the Comparison Results for clean view
-            if (tagDescComparisonSection) tagDescComparisonSection.style.display = 'none';
-        } else {
-            // Respect individual toggle state for the independent card
-            if (tagFilterSetupCard) tagFilterSetupCard.style.display = isTagFilterCollapsed ? 'none' : 'block';
-            // Respect individual toggle for results
-            if (tagDescComparisonSection) tagDescComparisonSection.style.display = isTagDatabaseCollapsed ? 'none' : 'block';
+        if (tagUploadersRow) {
+            tagUploadersRow.classList.toggle('collapsed', isTagInputsCollapsed);
         }
 
         if (isTagInputsCollapsed) {
             tagToggleIcon.setAttribute('data-lucide', 'chevron-down');
             tagToggleText.textContent = 'Restore Setup';
-            showToast("Setup collapsed for analysis view.");
+            showToast("Setup collapsed.");
         } else {
             tagToggleIcon.setAttribute('data-lucide', 'chevron-up');
             tagToggleText.textContent = 'Collapse Setup';
-        }
-        lucide.createIcons();
-    });
-
-    tagToggleDatabaseBtn.addEventListener('click', () => {
-        isTagDatabaseCollapsed = !isTagDatabaseCollapsed;
-        // INDIVIDUAL TOGGLE: only hides the Results Section (not the sidebar uploader 1b)
-        if (tagDescComparisonSection) {
-            tagDescComparisonSection.style.display = isTagDatabaseCollapsed ? 'none' : 'block';
-        }
-
-        if (isTagDatabaseCollapsed) {
-            tagDatabaseToggleIcon.setAttribute('data-lucide', 'eye');
-            tagDatabaseToggleText.textContent = 'Show Product';
-            showToast("Product Details Comparison hidden.");
-        } else {
-            tagDatabaseToggleIcon.setAttribute('data-lucide', 'eye-off');
-            tagDatabaseToggleText.textContent = 'Hide Product';
-        }
-        lucide.createIcons();
-    });
-
-    tagToggleManualBtn.addEventListener('click', () => {
-        isTagManualCollapsed = !isTagManualCollapsed;
-        tagMatcherSidebar.classList.toggle('collapsed-manual', isTagManualCollapsed);
-
-        if (isTagManualCollapsed) {
-            tagManualToggleIcon.setAttribute('data-lucide', 'eye');
-            tagManualToggleText.textContent = 'Show Manual';
-            showToast("Manual Options hidden.");
-        } else {
-            tagManualToggleIcon.setAttribute('data-lucide', 'eye-off');
-            tagManualToggleText.textContent = 'Hide Manual';
         }
         lucide.createIcons();
     });
@@ -1796,7 +1753,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tagFilterSetupCard) {
             tagFilterSetupCard.style.display = isTagFilterCollapsed ? 'none' : 'block';
         }
-
         if (isTagFilterCollapsed) {
             tagFilterToggleIcon.setAttribute('data-lucide', 'eye');
             tagFilterToggleText.textContent = 'Show Filter';
@@ -1806,6 +1762,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         lucide.createIcons();
     });
+
+    tagToggleDatabaseBtn.addEventListener('click', () => {
+        isTagDatabaseCollapsed = !isTagDatabaseCollapsed;
+        if (tagDescComparisonSection) {
+            tagDescComparisonSection.style.display = isTagDatabaseCollapsed ? 'none' : 'block';
+        }
+
+        if (isTagDatabaseCollapsed) {
+            tagDatabaseToggleIcon.setAttribute('data-lucide', 'eye');
+            tagDatabaseToggleText.textContent = 'Show Product';
+        } else {
+            tagDatabaseToggleIcon.setAttribute('data-lucide', 'eye-off');
+            tagDatabaseToggleText.textContent = 'Hide Product';
+        }
+        lucide.createIcons();
+    });
+    
     tagCsvInput.addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
@@ -2013,29 +1986,161 @@ document.addEventListener('DOMContentLoaded', () => {
 
     changeTagCsvBtn.addEventListener('click', () => {
         masterTagData.clear();
-        tagCatalogData.clear();
         tagFilesLoadedCount = 0;
         tagLoadedFilesList = [];
+        
+        tagCsvInput.value = '';
         tagCsvInfo.style.display = 'none';
         tagFileStatusArea.style.display = 'none';
         tagCsvLabel.style.display = 'flex';
-        tagCsvInput.value = '';
-        tagDescInput.value = '';
-        tagDescLabel.style.display = 'flex';
-        tagDescStatusArea.style.display = 'none';
-        tagDescComparisonSection.style.display = 'none';
-        tagDescComparisonResults.innerHTML = '<div class="empty-state" style="grid-column: span 2;"><p>Select options to see description comparison.</p></div>';
-        tagSkuPairInput.value = '';
+
+        // Partial UI reset for results since data is gone
         tagResultsContainer.innerHTML = '<div class="empty-state"><p>Upload tag data and select options to see comparison.</p></div>';
         tagSkuASelectArea.innerHTML = '<p class="empty-text">Enter SKUs to see options</p>';
         tagSkuBSelectArea.innerHTML = '<p class="empty-text">Enter SKUs to see options</p>';
-        manualTagOptionA.value = '';
-        manualTagOptionB.value = '';
         tagSkuAHeader.textContent = 'Select SKU A Option';
         tagSkuBHeader.textContent = 'Select SKU B Option';
-        isTagDescViewVisible = true;
-        showToast("All tag and description data reset.");
+
+        showToast("Tag data reset.");
         lucide.createIcons();
+    });
+
+    tagOptionMapInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        showToast(`Processing ${files.length} variant mapping file(s)...`);
+
+        let totalMappings = 0;
+        let filesProcessed = [];
+
+        for (const file of files) {
+            await new Promise((resolve) => {
+                const reader = new FileReader();
+                const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+                reader.onload = (ev) => {
+                    try {
+                        const data = isExcel ? new Uint8Array(ev.target.result) : ev.target.result;
+                        let rawRows = [];
+
+                        if (isExcel) {
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                        } else {
+                            const lines = data.split(/\r?\n/).filter(l => l.trim());
+                            rawRows = lines.map(line => {
+                                if (line.includes('\t')) return line.split('\t').map(s => s.trim().replace(/^["']|["']$/g, ''));
+                                return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^["']|["']$/g, ''));
+                            });
+                        }
+
+                        if (rawRows.length < 2) { resolve(); return; }
+
+                        let skuIdx = -1, mpnIdx = -1;
+                        // Variant columns: stores column indices for Grouping and Attribute
+                        // Format: [ {group: idx, attr: idx}, ... ]
+                        let variantPairs = []; 
+                        let headerRowIdx = -1;
+
+                        // Detect headers
+                        for (let i = 0; i < Math.min(rawRows.length, 50); i++) {
+                            const row = rawRows[i];
+                            if (!row || !Array.isArray(row)) continue;
+                            const normalized = row.map(cell => String(cell || "").toLowerCase().trim());
+                            
+                            let tempSkuIdx = normalized.findIndex(s => s.includes('wayfair listing') || s === 'sku' || s === 'prsku');
+                            let tempMpnIdx = normalized.findIndex(s => s.includes('manufacturer part number') || s === 'mpn' || s === 'part number');
+
+                            if (tempSkuIdx !== -1 && tempMpnIdx !== -1) {
+                                headerRowIdx = i;
+                                skuIdx = tempSkuIdx;
+                                mpnIdx = tempMpnIdx;
+
+                                // Look for variant column pairs
+                                for (let j = 0; j < row.length - 1; j++) {
+                                    const colName = normalized[j];
+                                    if (colName.includes('variant grouping')) {
+                                        // Usually followed by 'variant attribute ... name on site'
+                                        // We look for the next column if it looks like an attribute column
+                                        const nextColName = normalized[j + 1];
+                                        if (nextColName.includes('variant attribute') && nextColName.includes('name on site')) {
+                                            variantPairs.push({ group: j, attr: j + 1 });
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                        }
+
+                        if (headerRowIdx !== -1) {
+                            const headers = rawRows[headerRowIdx];
+                            for (let i = headerRowIdx + 1; i < rawRows.length; i++) {
+                                const row = rawRows[i];
+                                if (!row || !row[skuIdx] || !row[mpnIdx]) continue;
+
+                                const sku = String(row[skuIdx]).trim();
+                                const mpn = String(row[mpnIdx]).trim();
+                                if (!sku || !mpn || sku.toLowerCase().includes('listing') || sku.toLowerCase() === 'sku') continue;
+
+                                // Construct Option Name string: Group1: Attr1, Group2: Attr2, ...
+                                let parts = new Set();
+                                variantPairs.forEach(pair => {
+                                    const groupName = String(row[pair.group] || "").trim();
+                                    const attrValue = String(row[pair.attr] || "").trim();
+                                    if (groupName && attrValue) {
+                                        parts.add(`${groupName}: ${attrValue}`);
+                                    }
+                                });
+                                
+                                const partArray = Array.from(parts);
+                                // Construct the name without Part Number (since it's displayed separately below)
+                                // If no variants found, leave it blank (common for single-option SKUs)
+                                const constructedName = partArray.length > 0 ? partArray.join(', ') : "";
+
+                                if (!masterOptionMapData.has(sku)) masterOptionMapData.set(sku, new Map());
+                                masterOptionMapData.get(sku).set(mpn, constructedName);
+                                totalMappings++;
+                            }
+                        }
+                        filesProcessed.push(file.name);
+                        tagOptionMapLoadedFilesList.push(file.name);
+                        resolve();
+                    } catch (err) {
+                        console.error("Error parsing variant map:", err);
+                        resolve();
+                    }
+                };
+
+                if (isExcel) reader.readAsArrayBuffer(file);
+                else reader.readAsText(file);
+            });
+        }
+
+        if (tagOptionMapLoadedFilesList.length > 1) {
+            tagOptionMapFileName.innerHTML = tagOptionMapLoadedFilesList.map(name => `<div class="file-name-pill">${name}</div>`).join('');
+        } else {
+            tagOptionMapFileName.textContent = tagOptionMapLoadedFilesList[0];
+        }
+
+        tagOptionMapFileMeta.textContent = `${totalMappings.toLocaleString()} variant mappings processed.`;
+        tagOptionMapLabel.style.display = 'none';
+        tagOptionMapStatusArea.style.display = 'flex';
+        tagOptionMapInfo.style.display = 'flex';
+
+        showToast("Option mapping updated successfully.");
+        if (currentTagSkus.length > 0) lookupTagOptions();
+        lucide.createIcons();
+    });
+
+    changeTagOptionMapBtn.addEventListener('click', () => {
+        masterOptionMapData.clear();
+        tagOptionMapLoadedFilesList = [];
+        tagOptionMapInput.value = '';
+        tagOptionMapLabel.style.display = 'flex';
+        tagOptionMapStatusArea.style.display = 'none';
+        showToast("Option mapping cleared.");
+        if (currentTagSkus.length > 0) lookupTagOptions();
     });
 
 
@@ -2139,6 +2244,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             }
                         }
+                        tagDescLoadedFilesList.push(file.name);
                         resolve();
                     } catch (err) {
                         console.error("Error loading descriptions:", err);
@@ -2151,7 +2257,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        tagDescFileName.textContent = files.length > 1 ? `${files.length} files loaded` : files[0].name;
+        if (tagDescLoadedFilesList.length > 1) {
+            tagDescFileName.innerHTML = tagDescLoadedFilesList.map(name => `<div class="file-name-pill">${name}</div>`).join('');
+        } else {
+            tagDescFileName.textContent = tagDescLoadedFilesList[0];
+        }
+
         tagDescFileMeta.textContent = `${tagCatalogData.size.toLocaleString()} SKUs/MPNs records processed.`;
         tagDescLabel.style.display = 'none';
         tagDescStatusArea.style.display = 'flex';
@@ -2160,15 +2271,15 @@ document.addEventListener('DOMContentLoaded', () => {
         isTagDescViewVisible = true;
         tagDescComparisonSection.style.display = 'block';
 
-
         showToast("Description records updated.");
-        if (currentTagSkus.length > 0) performTagComparison();
+        if (currentTagSkus.length > 0) renderTagDescView(currentTagSkus[0], currentTagSkus[1]);
         lucide.createIcons();
     });
 
 
     changeTagDescBtn.addEventListener('click', () => {
         tagCatalogData.clear();
+        tagDescLoadedFilesList = [];
         tagDescInput.value = '';
         tagDescLabel.style.display = 'flex';
         tagDescStatusArea.style.display = 'none';
@@ -2232,10 +2343,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tagDescComparisonResults.innerHTML = '<div class="empty-state" style="grid-column: span 2;"><p>Select options to see description comparison.</p></div>';
         tagSkuASelectArea.innerHTML = '<p class="empty-text">Enter SKUs to see options</p>';
         tagSkuBSelectArea.innerHTML = '<p class="empty-text">Enter SKUs to see options</p>';
-        manualTagOptionA.value = '';
-        manualTagOptionB.value = '';
-        manualTagOptionALabel.textContent = 'SKU A Options';
-        manualTagOptionBLabel.textContent = 'SKU B Options';
         tagSkuAHeader.textContent = 'Select SKU A Option';
         tagSkuBHeader.textContent = 'Select SKU B Option';
         tagSkuASearch.value = '';
@@ -2254,8 +2361,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     tagSkuPairInput.addEventListener('input', lookupTagOptions);
-    manualTagOptionA.addEventListener('input', lookupTagOptions);
-    manualTagOptionB.addEventListener('input', lookupTagOptions);
 
     // Initial load for saved filters
     const savedTagFilters = localStorage.getItem('tag_matcher_filters');
@@ -2314,8 +2419,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!text) {
             tagSkuASelectArea.innerHTML = '<p class="empty-text">Enter SKUs to see options</p>';
             tagSkuBSelectArea.innerHTML = '<p class="empty-text">Enter SKUs to see options</p>';
-            manualTagOptionALabel.textContent = 'SKU A Options';
-            manualTagOptionBLabel.textContent = 'SKU B Options';
             tagSkuAHeader.textContent = 'Select SKU A Option';
             tagSkuBHeader.textContent = 'Select SKU B Option';
             return;
@@ -2334,49 +2437,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Update Labels
-        manualTagOptionALabel.textContent = `${skuA} Options`;
         tagSkuAHeader.textContent = `Select SKU ${skuA} Option`;
         if (skuB) {
-            manualTagOptionBLabel.textContent = `${skuB} Options`;
             tagSkuBHeader.textContent = `Select SKU ${skuB} Option`;
         } else {
-            manualTagOptionBLabel.textContent = 'SKU B Options';
             tagSkuBHeader.textContent = 'Select SKU B Option';
         }
 
-        const getMergedOptions = (sku, manualText) => {
+        const getMergedOptions = (sku) => {
             const fromFile = masterTagData.get(sku) || new Map();
+            const fromMap = masterOptionMapData.get(sku) || new Map();
             const results = new Map(); // Part -> Name
 
-            // 1. Add from file
-            fromFile.forEach((tags, mpn) => {
-                // Try to find a human name in tags
-                const name = tags['Option Name'] || tags['Product Name'] || tags['Option'] || "Option (File)";
+            // 1. Add from Variant Map (Highest Priority for Option Name)
+            fromMap.forEach((name, mpn) => {
                 results.set(mpn, name);
             });
 
-            // 2. Add from manual (Line-based)
-            const manualLines = manualText.split(/\n/).filter(line => line.trim());
-            manualLines.forEach(line => {
-                // Heuristic: Last part after comma/tab/pipe is usually the part number
-                const parts = line.split(/[,|\t]+/).map(p => p.trim()).filter(p => p.length > 0);
-                if (parts.length >= 2) {
-                    const mpn = parts.pop();
-                    const name = parts.join(', ');
+            // 2. Add from tag file (Only if not already in results)
+            fromFile.forEach((tags, mpn) => {
+                if (!results.has(mpn)) {
+                    // Try to find a human name in tags
+                    const name = tags['Option Name'] || tags['Product Name'] || tags['Option'] || "Option (File)";
                     results.set(mpn, name);
-                } else if (parts.length === 1) {
-                    // Just a part number
-                    if (!results.has(parts[0])) {
-                        results.set(parts[0], "Manual Entry");
-                    }
                 }
             });
 
             return Array.from(results.entries()).map(([part, name]) => ({ part, name }));
         };
 
-        fullOptionsA = getMergedOptions(skuA, manualTagOptionA.value);
-        fullOptionsB = skuB ? getMergedOptions(skuB, manualTagOptionB.value) : [];
+        fullOptionsA = getMergedOptions(skuA);
+        fullOptionsB = skuB ? getMergedOptions(skuB) : [];
 
         // --- Calculate Stats for Headers ---
         const partsA = new Set(fullOptionsA.map(o => o.part.toLowerCase().trim()));
@@ -2470,13 +2561,15 @@ document.addEventListener('DOMContentLoaded', () => {
             item.className = `option-item ${isSelected ? 'selected' : ''} ${isShared ? 'shared-option' : ''}`;
             item.innerHTML = `
                 <input type="radio" name="tagSku${type}Option" value="${mpn}" ${isSelected ? 'checked' : ''}>
-                <div class="option-info">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                        <span class="option-name">${name}</span>
-                        ${isShared ? '<span class="shared-badge">Same Part Number</span>' : ''}
-                        <span style="font-size: 0.7rem; color: var(--text-dim); opacity: 0.7; margin-left: auto;">${currentSku}</span>
+                <div class="option-info" style="display: flex; flex-direction: column; gap: 0.4rem; padding: 0.25rem 0;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="option-name" style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">${name || 'Variant Option'}</span>
+                        ${isShared ? '<span class="shared-badge">Same Part#</span>' : ''}
                     </div>
-                    <span class="option-part">${mpn}</span>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <code class="option-part" style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--primary); font-weight: 500; letter-spacing: -0.01em;">${mpn}</code>
+                        <span style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.4; font-weight: 500;">(${currentSku})</span>
+                    </div>
                 </div>
             `;
 

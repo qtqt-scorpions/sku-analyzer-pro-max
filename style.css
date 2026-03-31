@@ -499,12 +499,13 @@ h1, h2, h3, .app-header h1 {
     margin-bottom: 1.5rem;
 }
 
-.option-list {
-    max-height: 300px;
+.option-list, .option-select-area {
+    max-height: 350px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    padding: 4px;
 }
 
 .option-item {
@@ -673,44 +674,41 @@ h1, h2, h3, .app-header h1 {
 }
 
 #tagTab .matcher-sidebar {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    display: none;
+}
+
+.tag-setup-dashboard {
     width: 100%;
 }
 
-#tagTab .matcher-sidebar .premium-card {
-    margin: 0 !important;
-    display: flex;
-    flex-direction: column;
+.tag-uploaders-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    width: 100%;
+    transition: all 0.3s ease;
 }
 
-#tagTab .matcher-sidebar > div:first-child {
-    grid-column: 1 / span 2;
-    grid-row: 1;
+.tag-uploaders-grid.collapsed {
+    display: none;
 }
 
-#tagSection1 { grid-column: 1; grid-row: 2; }
-#tagSectionDesc { grid-column: 1; grid-row: 3; }
-#tagSection2 { grid-column: 2; grid-row: 2 / span 2; }
+@media (max-width: 1200px) {
+    .tag-uploaders-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
 
+@media (max-width: 800px) {
+    .tag-uploaders-grid {
+        grid-template-columns: 1fr;
+    }
+}
 
 #tagSection2 .premium-textarea {
     flex-grow: 1;
     height: auto !important;
-    min-height: 120px;
-}
-
-#tagSection3 {
-    grid-column: span 2;
-}
-
-
-/* Internal grid for Manual Options */
-.manual-options-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+    min-height: 100px;
 }
 
 /* Tag Matcher Split View */
@@ -725,19 +723,11 @@ h1, h2, h3, .app-header h1 {
 #tagMatcherSidebar.collapsed #tagSection1,
 #tagMatcherSidebar.collapsed #tagSectionDesc,
 #tagMatcherSidebar.collapsed #tagSection2,
-#tagMatcherSidebar.collapsed #tagSection3,
 #tagMatcherSidebar.collapsed-manual #tagSection3,
-#tagMatcherSidebar.collapsed-database #tagSectionDesc,
-#aiMainGrid.collapsed-config #aiConfigSection,
-#aiMainGrid.collapsed-db-batch #aiInputsWrapper > .glass-card:nth-child(1),
-#aiMainGrid.collapsed-db-batch #aiInputsWrapper > .glass-card:nth-child(2) {
+#tagMatcherSidebar.collapsed-database #tagSectionDesc {
     display: none;
 }
 
-#tagMatcherSidebar.collapsed,
-#aiMainGrid.collapsed-config.collapsed-db-batch {
-    gap: 0;
-}
 
 /* Ensure the result grid takes full width when splitting */
 #tagTab .matcher-main {
