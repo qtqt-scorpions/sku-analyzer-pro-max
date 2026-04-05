@@ -273,29 +273,39 @@
                 <p class="subtitle">Quickly match SKU options with supplier records.</p>
             </header>
 
-            <div class="matcher-layout">
-                <div class="matcher-sidebar">
-                    <div class="premium-card mb-2">
-                        <div class="card-header mb-1" style="margin-bottom: 1rem;">
-                            <div class="header-title">
+            <div class="matcher-setup-dashboard">
+                <div class="setup-header-row"
+                    style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; padding: 0 0.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <span style="font-family: 'Outfit'; font-weight: 600; font-size: 1.1rem; color: var(--text-main);">
+                        <i data-lucide="settings-2"
+                            style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 0.5rem;"></i>
+                        Supplier & Option Setup
+                    </span>
+                    <button id="matcherResetAllBtn" class="btn secondary-outline" style="padding: 0.4rem 1rem; border-radius: 10px; font-size: 0.85rem;">
+                        <i data-lucide="refresh-ccw" style="width: 14px; height: 14px; margin-right: 0.25rem;"></i>
+                        Reset All Data
+                    </button>
+                </div>
+
+                <div class="setup-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <!-- 1a. Supplier Records -->
+                    <div class="premium-card" id="matcherSection1a">
+                        <div class="card-header-main" style="margin-bottom: 1.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
                                 <i data-lucide="database"></i>
-                                <h3>1. Supplier Records</h3>
+                                <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700;">1a. Supplier Records</h2>
                             </div>
-                            <div class="mode-toggles"
-                                style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
-                                <button id="matcherDataModePasteBtn" class="mode-btn active"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"><i
-                                        data-lucide="clipboard-paste"
-                                        style="width: 14px; height: 14px;"></i>Paste</button>
-                                <button id="matcherDataModeFileBtn" class="mode-btn"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim); display: flex; align-items: center; gap: 4px;"><i
-                                        data-lucide="file-spreadsheet"
-                                        style="width: 14px; height: 14px;"></i>File</button>
+                            <p style="font-size: 0.8rem; color: var(--text-dim); opacity: 0.8; margin: 0.25rem 0 0 0; font-weight: 500;">
+                                Internal Database > Supplier Part Numbers</p>
+                            
+                            <div class="mode-toggles mt-1" style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border); margin-top: 1rem;">
+                                <button id="matcherDataModePasteBtn" class="mode-btn active" style="flex: 1; padding: 0.35rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;"><i data-lucide="clipboard-paste" style="width: 14px; height: 14px;"></i>Paste</button>
+                                <button id="matcherDataModeFileBtn" class="mode-btn" style="flex: 1; padding: 0.35rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim); display: flex; align-items: center; justify-content: center; gap: 4px;"><i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>File</button>
                             </div>
                         </div>
 
                         <!-- Active Info Card (Shared) -->
-                        <div id="matcherCsvInfo" class="file-info-card" style="display: none; margin-bottom: 1.5rem;">
+                        <div id="matcherCsvInfo" class="file-info-card" style="display: none; margin-bottom: 1rem;">
                             <div class="file-icon-box">
                                 <i data-lucide="file-spreadsheet"></i>
                             </div>
@@ -303,8 +313,7 @@
                                 <span id="matcherCsvName" class="file-name">filename.csv</span>
                                 <span id="matcherCsvMeta" class="file-meta">0 records</span>
                             </div>
-                            <button id="changeMatcherCsvBtn" class="change-file-btn"><i data-lucide="refresh-ccw"
-                                    style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Change</button>
+                            <button id="changeMatcherCsvBtn" class="change-file-btn danger"><i data-lucide="trash" style="width: 14px; height: 14px;"></i></button>
                         </div>
 
                         <!-- Mode: File -->
@@ -312,69 +321,75 @@
                             <input type="file" id="matcherCsvInput" accept=".csv, .xlsx, .xls" />
                             <label for="matcherCsvInput" class="file-label" id="matcherCsvLabel">
                                 <i data-lucide="upload-cloud"></i>
-                                <span>Upload Supplier Records</span>
+                                <span>Upload Supplier CSV</span>
                             </label>
                         </div>
 
                         <!-- Mode: Paste -->
                         <div id="matcherDataPasteArea">
                             <textarea id="matcherDataPasteInput" class="premium-textarea"
-                                placeholder="Paste supplier data here (including headers)...&#10;PrSKU    SupplierID    PartNumber&#10;SKU123    105688    MPN999"
-                                style="height: 180px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;"></textarea>
-                            <div class="controls">
-                                <button id="processMatcherPasteBtn" class="btn primary btn-sm w-100"
-                                    style="height: 40px; border-radius: 10px;">
-                                    <i data-lucide="zap"></i> Process Pasted Data
-                                </button>
-                            </div>
+                                placeholder="Paste supplier data...&#10;PrSKU    SupplierID    PartNumber"
+                                style="height: 120px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;"></textarea>
+                            <button id="processMatcherPasteBtn" class="btn primary btn-sm w-100" style="height: 40px; border-radius: 10px;">
+                                <i data-lucide="zap"></i> Process Pasted Data
+                            </button>
                         </div>
                     </div>
 
-                    <div class="premium-card mb-2">
-                        <div class="card-header mb-1" style="margin-bottom: 1.5rem;">
-                            <div class="header-title">
-                                <i data-lucide="layout-grid"></i>
-                                <h3>2. Input Selection</h3>
+                    <!-- 1b. Option Mapper -->
+                    <div class="premium-card" id="matcherSection1b">
+                        <div class="card-header-main" style="margin-bottom: 1.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
+                                <i data-lucide="map"></i>
+                                <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700;">1b. Option Mapper</h2>
                             </div>
+                            <p style="font-size: 0.8rem; color: var(--text-dim); opacity: 0.8; margin: 0.25rem 0 0 0; font-weight: 500;">
+                                PMP > Export > Bulk Update Variant Groups</p>
                         </div>
-
-                        <!-- Combined Inputs -->
-                        <div id="matcherCombinedArea">
-                            <label class="input-label-premium" style="font-size: 0.9rem;">
-                                <i data-lucide="scan-barcode"></i>
-                                SKU Pair
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="matcherOptionMapInput" accept=".csv, .xlsx, .xls" multiple />
+                            <label for="matcherOptionMapInput" class="file-label" id="matcherOptionMapLabel">
+                                <i data-lucide="upload-cloud"></i>
+                                <span>Upload Option Excel</span>
                             </label>
-                            <textarea id="skuPairInput" class="premium-textarea mb-1"
-                                placeholder="Paste SKU pair here...&#10;Example: SKU-A  SKU-B"
-                                style="height: 60px; margin-bottom: 1.5rem;"></textarea>
-
-                            <div class="mb-2">
-                                <label id="skuALabel" class="input-label-premium" style="font-size: 0.9rem;">
-                                    <i data-lucide="type"></i>
-                                    SKU A Options
-                                </label>
-                                <textarea id="skuAInput" class="premium-textarea" style="height: 100px;"
-                                    placeholder="Paste SKU A options here...&#10;(Option Name, Part Number)"></textarea>
-                            </div>
-
-                            <div>
-                                <label id="skuBLabel" class="input-label-premium" style="font-size: 0.9rem;">
-                                    <i data-lucide="type"></i>
-                                    SKU B Options
-                                </label>
-                                <textarea id="skuBInput" class="premium-textarea" style="height: 100px;"
-                                    placeholder="Paste SKU B options here...&#10;(Option Name, Part Number)"></textarea>
+                            <div id="matcherOptionMapStatusArea" style="display: none; flex-direction: column; gap: 0.75rem;">
+                                <div id="matcherOptionPillContainer" class="file-pill-container"></div>
+                                <div class="file-actions-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                                    <label for="matcherOptionMapInput" class="btn-add-more">
+                                        <i data-lucide="plus-circle"></i>
+                                        <span>Add More</span>
+                                    </label>
+                                    <button id="resetMatcherOptionMapBtn" class="change-file-btn danger" title="Clear Mappings"><i data-lucide="trash" style="width: 14px; height: 14px;"></i>Reset</button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- 2. SKU Pair -->
+                    <div class="premium-card" id="matcherSection2" style="grid-column: span 2;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                            <div class="header-title" style="margin-bottom: 0;">
+                                <i data-lucide="scan-barcode"></i>
+                                <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">2. SKU Pair</h3>
+                            </div>
+                            <button id="clearMatcherPairBtn" class="btn secondary-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; border-radius: 8px;">
+                                <i data-lucide="eraser" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </div>
+                        <div style="width: 100%;">
+                            <textarea id="skuPairInput" class="premium-textarea"
+                                placeholder="Paste SKU pair here...&#10;Example: SKU-A    SKU-B"
+                                style="height: 120px; resize: none; width: 100%;"></textarea>
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <div class="matcher-main">
+            <div class="matcher-layout" style="display: block; margin-top: 2rem;">
                     <div class="selection-container">
                         <div class="premium-card">
                             <div class="card-header" style="padding-bottom: 0.5rem;">
-                                <h3><i data-lucide="check-circle"
+                                <h3 id="skuALabel"><i data-lucide="check-circle"
                                         style="width:18px;height:18px;vertical-align:middle;margin-right:8px;color:var(--primary);"></i>Select
                                     SKU A Option</h3>
                             </div>
@@ -389,7 +404,7 @@
                         </div>
                         <div class="premium-card">
                             <div class="card-header" style="padding-bottom: 0.5rem;">
-                                <h3><i data-lucide="check-circle"
+                                <h3 id="skuBLabel"><i data-lucide="check-circle"
                                         style="width:18px;height:18px;vertical-align:middle;margin-right:8px;color:var(--primary);"></i>Select
                                     SKU B Option</h3>
                             </div>
@@ -1080,10 +1095,10 @@
                 <section class="left-col" style="grid-column: span 12;">
 
 
-                    <div id="aiInputsWrapper" class="ai-cols-wrapper"
-                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                        <!-- Col 1: Database -->
-                        <div class="glass-card">
+                        <div id="aiInputsWrapper" class="ai-cols-wrapper"
+                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <!-- Col 1: Database -->
+                            <div class="glass-card" id="aiDbSection">
                             <div class="header-title mb-1">
                                 <i data-lucide="database"></i>
                                 <h3>1. Product Database</h3>
@@ -1115,7 +1130,7 @@
                         </div>
 
                         <!-- Col 2: Batch Analysis -->
-                        <div class="glass-card">
+                        <div class="glass-card" id="aiBatchSection">
                             <div class="header-title mb-1">
                                 <i data-lucide="cpu"></i>
                                 <h3>2. Batch Analysis</h3>

@@ -123,36 +123,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let isAiConfigCollapsed = false;
     let isAiDbBatchCollapsed = false;
 
-    if (aiToggleConfigBtn) {
+    if (aiToggleConfigBtn && aiConfigSection) {
         aiToggleConfigBtn.addEventListener('click', () => {
-            isAiConfigCollapsed = !isAiConfigCollapsed;
-            aiMainGrid.classList.toggle('collapsed-config', isAiConfigCollapsed);
-
-            if (isAiConfigCollapsed) {
-                aiConfigToggleIcon.setAttribute('data-lucide', 'eye');
-                aiConfigToggleText.textContent = 'Show Config';
-                showToast("AI Configuration hidden.");
-            } else {
-                aiConfigToggleIcon.setAttribute('data-lucide', 'eye-off');
-                aiConfigToggleText.textContent = 'Hide Config';
-            }
+            const isHidden = aiConfigSection.style.display === 'none';
+            aiConfigSection.style.display = isHidden ? 'block' : 'none';
+            aiConfigToggleText.textContent = isHidden ? 'Hide Config' : 'Show Config';
+            aiConfigToggleIcon.setAttribute('data-lucide', isHidden ? 'eye-off' : 'eye');
             lucide.createIcons();
         });
     }
 
     if (aiToggleDbBatchBtn) {
+        const aiDbSection = document.getElementById('aiDbSection');
+        const aiBatchSection = document.getElementById('aiBatchSection');
+        
         aiToggleDbBatchBtn.addEventListener('click', () => {
-            isAiDbBatchCollapsed = !isAiDbBatchCollapsed;
-            aiMainGrid.classList.toggle('collapsed-db-batch', isAiDbBatchCollapsed);
-
-            if (isAiDbBatchCollapsed) {
-                aiDbBatchToggleIcon.setAttribute('data-lucide', 'eye');
-                aiDbBatchToggleText.textContent = 'Show DB & Batch';
-                showToast("Product Database & Batch Analysis hidden.");
-            } else {
-                aiDbBatchToggleIcon.setAttribute('data-lucide', 'eye-off');
-                aiDbBatchToggleText.textContent = 'Hide DB & Batch';
-            }
+            const isHidden = aiDbSection.style.display === 'none';
+            aiDbSection.style.display = isHidden ? 'block' : 'none';
+            aiBatchSection.style.display = isHidden ? 'block' : 'none';
+            
+            aiDbBatchToggleText.textContent = isHidden ? 'Hide DB & Batch' : 'Show DB & Batch';
+            aiDbBatchToggleIcon.setAttribute('data-lucide', isHidden ? 'eye-off' : 'eye');
             lucide.createIcons();
         });
     }
@@ -798,12 +789,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const changeMatcherCsvBtn = document.getElementById('changeMatcherCsvBtn');
     const matcherCsvLabel = document.getElementById('matcherCsvLabel');
 
+    const matcherOptionMapInput = document.getElementById('matcherOptionMapInput');
+    const matcherOptionPillContainer = document.getElementById('matcherOptionPillContainer');
+    const resetMatcherOptionMapBtn = document.getElementById('resetMatcherOptionMapBtn');
+    const matcherOptionMapStatusArea = document.getElementById('matcherOptionMapStatusArea');
+    const matcherOptionMapLabel = document.getElementById('matcherOptionMapLabel');
+    const matcherResetAllBtn = document.getElementById('matcherResetAllBtn');
+    const clearMatcherPairBtn = document.getElementById('clearMatcherPairBtn');
+
     const skuPairInput = document.getElementById('skuPairInput');
-    const skuAInput = document.getElementById('skuAInput');
-    const skuBInput = document.getElementById('skuBInput');
     const skuALabel = document.getElementById('skuALabel');
     const skuBLabel = document.getElementById('skuBLabel');
-    // Removed old mode toggle buttons and areas
     const skuASelectArea = document.getElementById('skuASelectArea');
     const skuBSelectArea = document.getElementById('skuBSelectArea');
     const matcherSkuASearch = document.getElementById('matcherSkuASearch');
@@ -815,24 +811,207 @@ document.addEventListener('DOMContentLoaded', () => {
     const matcherDataPasteInput = document.getElementById('matcherDataPasteInput');
     const processMatcherPasteBtn = document.getElementById('processMatcherPasteBtn');
 
-    let imageRows = [];
+    let imageRows = []; // Supplier Database
+    let masterMatcherOptionMapData = new Map(); // SKU -> [{name, part}]
+    let masterMatcherGlobalOptionMap = new Map(); // Global Part -> Name
+    let matcherLoadedFileNames = [];
     let selectedPartA = null;
     let selectedPartB = null;
     let matcherSortCol = 'PrSKU';
     let matcherSortDir = 'asc';
     let allPartsA = new Set();
     let allPartsB = new Set();
-    // Removed matcherInputMode
     let fullRawOptionsA = []; // Array of {name, part, sku}
     let fullRawOptionsB = [];
     let matcherSearchQueryA = '';
     let matcherSearchQueryB = '';
 
     // --- Option Matcher Logic ---
+    // --- Option Matcher Logic ---
     matcherCsvInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
         processFile(file, (content) => handleSupplierData(content, file.name));
+    });
+
+    matcherOptionMapInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        showToast(`Loading ${files.length} mapping file(s)...`);
+        
+        for (const file of files) {
+            await new Promise((resolve) => {
+                const reader = new FileReader();
+                const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+                reader.onload = (ev) => {
+                    try {
+                        const data = isExcel ? new Uint8Array(ev.target.result) : ev.target.result;
+                        let rawRows = [];
+
+                        if (isExcel) {
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                        } else {
+                            const lines = data.split(/\r?\n/).filter(l => l.trim());
+                            rawRows = lines.map(line => {
+                                if (line.includes('\t')) return line.split('\t').map(s => s.trim().replace(/^["']|["']$/g, ''));
+                                return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^["']|["']$/g, ''));
+                            });
+                        }
+
+                        if (rawRows.length < 2) { resolve(); return; }
+
+                        let skuIdx = -1, mpnIdx = -1;
+                        let variantPairs = []; 
+                        let headerRowIdx = -1;
+
+                        // Detect headers (Exact logic from Tag Matcher)
+                        for (let i = 0; i < Math.min(rawRows.length, 50); i++) {
+                            const row = rawRows[i];
+                            if (!row || !Array.isArray(row)) continue;
+                            const normalized = row.map(cell => String(cell || "").toLowerCase().trim());
+                            
+                            let tempSkuIdx = normalized.findIndex(s => s.includes('wayfair listing') || s === 'sku' || s === 'prsku');
+                            let tempMpnIdx = normalized.findIndex(s => s.includes('manufacturer part number') || s === 'mpn' || s === 'part number');
+
+                            if (tempSkuIdx !== -1 && tempMpnIdx !== -1) {
+                                headerRowIdx = i;
+                                skuIdx = tempSkuIdx;
+                                mpnIdx = tempMpnIdx;
+
+                                for (let j = 0; j < row.length - 1; j++) {
+                                    const colName = normalized[j];
+                                    if (colName.includes('variant grouping')) {
+                                        const nextColName = normalized[j + 1];
+                                        if (nextColName.includes('variant attribute') && nextColName.includes('name on site')) {
+                                            variantPairs.push({ group: j, attr: j + 1 });
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                        }
+
+                        if (headerRowIdx !== -1) {
+                            for (let i = headerRowIdx + 1; i < rawRows.length; i++) {
+                                const row = rawRows[i];
+                                if (!row || !row[skuIdx] || !row[mpnIdx]) continue;
+
+                                const sku = String(row[skuIdx]).trim();
+                                const mpn = String(row[mpnIdx]).trim();
+                                if (!sku || !mpn || sku.toLowerCase().includes('listing') || sku.toLowerCase() === 'sku') continue;
+
+                                // Use Set to exactly match Tag Matcher deduplication
+                                let variantPartsSet = new Set();
+                                variantPairs.forEach(pair => {
+                                    const groupName = String(row[pair.group] || "").trim();
+                                    const attrValue = String(row[pair.attr] || "").trim();
+                                    if (groupName && attrValue) {
+                                        variantPartsSet.add(`${groupName}: ${attrValue}`);
+                                    }
+                                });
+                                
+                                const partArray = Array.from(variantPartsSet);
+                                const constructedName = partArray.length > 0 ? partArray.join(', ') : "";
+                                
+                                if (constructedName) {
+                                    const cleanSku = sku.toLowerCase().trim();
+                                    const cleanMpn = mpn.toLowerCase().trim();
+
+                                    // Global Mapping
+                                    if (!masterMatcherGlobalOptionMap.has(cleanMpn)) {
+                                        masterMatcherGlobalOptionMap.set(cleanMpn, constructedName);
+                                    }
+
+                                    // SKU Specific Mapping
+                                    if (!masterMatcherOptionMapData.has(cleanSku)) {
+                                        masterMatcherOptionMapData.set(cleanSku, []);
+                                    }
+                                    const existing = masterMatcherOptionMapData.get(cleanSku);
+                                    if (!existing.some(o => o.part.toLowerCase().trim() === cleanMpn)) {
+                                        existing.push({ name: constructedName, part: mpn });
+                                    }
+                                }
+                            }
+                        }
+                        if (!matcherLoadedFileNames.includes(file.name)) {
+                            matcherLoadedFileNames.push(file.name);
+                        }
+                        resolve();
+                    } catch (err) {
+                        console.error("Error parsing mapping file:", err);
+                        resolve();
+                    }
+                };
+                if (isExcel) reader.readAsArrayBuffer(file);
+                else reader.readAsText(file);
+            });
+        }
+
+        renderMatcherOptionPills();
+        matcherOptionMapLabel.style.display = 'none';
+        matcherOptionMapStatusArea.style.display = 'flex';
+        processCombinedMatcherInput();
+        showToast("Mappings loaded successfully.");
+    });
+
+    function renderMatcherOptionPills() {
+        matcherOptionPillContainer.innerHTML = '';
+        matcherLoadedFileNames.forEach(name => {
+            const pill = document.createElement('div');
+            pill.className = 'file-name-pill';
+            pill.innerHTML = `
+                <i data-lucide="file-check" style="width: 12px; height: 12px;"></i>
+                <span title="${name}">${name}</span>
+            `;
+            matcherOptionPillContainer.appendChild(pill);
+        });
+        lucide.createIcons();
+    }
+
+    resetMatcherOptionMapBtn.addEventListener('click', () => {
+        masterMatcherOptionMapData.clear();
+        matcherLoadedFileNames = [];
+        matcherOptionPillContainer.innerHTML = '';
+        matcherOptionMapLabel.style.display = 'flex';
+        matcherOptionMapStatusArea.style.display = 'none';
+        matcherOptionMapInput.value = '';
+        processCombinedMatcherInput();
+        showToast("Mappings cleared.");
+    });
+
+    matcherResetAllBtn.addEventListener('click', () => {
+        // Clear Supplier DB
+        imageRows = [];
+        matcherCsvInfo.style.display = 'none';
+        matcherCsvInfo.classList.remove('active');
+        matcherCsvLabel.style.display = 'flex';
+        matcherCsvInput.value = '';
+        
+        // Clear Mappings
+        masterMatcherOptionMapData.clear();
+        matcherLoadedFileNames = [];
+        matcherOptionPillContainer.innerHTML = '';
+        matcherOptionMapLabel.style.display = 'flex';
+        matcherOptionMapStatusArea.style.display = 'none';
+        matcherOptionMapInput.value = '';
+        
+        // Clear UI
+        skuPairInput.value = '';
+        selectedPartA = null;
+        selectedPartB = null;
+        
+        processCombinedMatcherInput();
+        showToast("All Option Matcher data reset.");
+    });
+
+    clearMatcherPairBtn.addEventListener('click', () => {
+        skuPairInput.value = '';
+        selectedPartA = null;
+        selectedPartB = null;
+        processCombinedMatcherInput();
     });
 
     matcherDataModeFileBtn.addEventListener('click', () => {
@@ -897,47 +1076,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         imageRows = lines.slice(headerIdx + 1).map(line => {
             const parts = getParts(line);
-            const row = {
+            return {
                 PrSKU: (parts[colMap.sku] || '').trim(),
                 ActualManufacturerPartNumber: (parts[colMap.part] || '').trim(),
                 SupplierID: (parts[colMap.supplier] || '').trim(),
                 OptionName: (parts[colMap.name] || parts[colMap.desc] || '').trim()
             };
-            return row;
         }).filter(r => r.PrSKU && r.ActualManufacturerPartNumber);
-
-        const uniquePrSkus = new Set(imageRows.map(r => r.PrSKU).filter(s => s));
-        if (uniquePrSkus.size < 2) {
-            showToast("Error: Data must contain at least two different PrSKU values.");
-            matcherCsvName.textContent = "Invalid Data";
-            matcherCsvMeta.textContent = `Only ${uniquePrSkus.size} unique PrSKU(s) found`;
-            matcherCsvInfo.style.background = "#fef2f2";
-            matcherCsvInfo.style.borderColor = "#fecaca";
-
-            // Show info card but keep inputs based on mode
-            matcherCsvInfo.style.display = 'flex';
-            matcherCsvInfo.classList.add('active');
-
-            if (matcherDataModeFileBtn.classList.contains('active')) {
-                matcherDataFileArea.style.display = 'none';
-            }
-            return;
-        } else {
-            matcherCsvInfo.style.background = "#f0fdf4";
-            matcherCsvInfo.style.borderColor = "#bbf7d0";
-        }
 
         matcherCsvName.textContent = fileName;
         matcherCsvMeta.textContent = `${imageRows.length.toLocaleString()} records loaded`;
-
-        // UI Flow based on mode
+        matcherCsvInfo.style.display = 'flex';
+        matcherCsvInfo.classList.add('active');
+        
         if (matcherDataModeFileBtn.classList.contains('active')) {
             matcherDataFileArea.style.display = 'none';
             matcherCsvLabel.style.display = 'none';
         }
 
-        matcherCsvInfo.style.display = 'flex';
-        matcherCsvInfo.classList.add('active');
         processCombinedMatcherInput();
         lucide.createIcons();
     }
@@ -945,17 +1101,13 @@ document.addEventListener('DOMContentLoaded', () => {
     changeMatcherCsvBtn.addEventListener('click', () => {
         matcherCsvInfo.style.display = 'none';
         matcherCsvInfo.classList.remove('active');
+        imageRows = [];
 
-        // Restore based on mode
         if (matcherDataModeFileBtn.classList.contains('active')) {
             matcherCsvLabel.style.display = 'flex';
             matcherDataFileArea.style.display = 'block';
             matcherCsvInput.value = '';
-        } else {
-            // In paste mode, it's already visible
         }
-
-        imageRows = [];
         updateMatcherResults();
     });
 
@@ -970,13 +1122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     skuPairInput.addEventListener('input', processCombinedMatcherInput);
-    skuAInput.addEventListener('input', processCombinedMatcherInput);
-    skuBInput.addEventListener('input', processCombinedMatcherInput);
-
-    // Give time for text to be inserted before processing on paste
     skuPairInput.addEventListener('paste', () => setTimeout(processCombinedMatcherInput, 0));
-    skuAInput.addEventListener('paste', () => setTimeout(processCombinedMatcherInput, 0));
-    skuBInput.addEventListener('paste', () => setTimeout(processCombinedMatcherInput, 0));
 
     skuPairInput.addEventListener('blur', () => {
         const text = skuPairInput.value.trim();
@@ -984,90 +1130,70 @@ document.addEventListener('DOMContentLoaded', () => {
         if (skus.length > 0) skuPairInput.value = skus.join(', ');
     });
 
-    const getOptionsForSku = (sku) => {
-        if (!sku || imageRows.length === 0) return [];
-        const searchSku = sku.toLowerCase().trim();
-        const matchingRows = imageRows.filter(r => r.PrSKU.toLowerCase() === searchSku);
-        const seenParts = new Set();
-        const options = [];
-
-        matchingRows.forEach(row => {
-            const part = row.ActualManufacturerPartNumber;
-            if (part && !seenParts.has(part.toLowerCase().trim())) {
-                seenParts.add(part.toLowerCase().trim());
-                options.push({ name: row.OptionName, part: part, sku: row.PrSKU });
-            }
-        });
-        return options;
-    };
-
     function processCombinedMatcherInput() {
-        // Find inputs
         const skuText = skuPairInput.value.trim();
         const skus = skuText.split(/[\s\t\n,]+/).filter(s => s.length > 0);
-        const skuAFilter = skus.length > 0 ? skus[0].toLowerCase() : null;
-        const skuBFilters = skus.length > 1 ? skus.slice(1).map(s => s.toLowerCase()) : [];
-
-        let manualOptionsA = parseManualOptions(skuAInput.value);
-        let manualOptionsB = parseManualOptions(skuBInput.value);
+        const skuAData = skus.length > 0 ? skus[0].toLowerCase().trim() : null;
+        const skuBData = skus.length > 1 ? skus[1].toLowerCase().trim() : null;
 
         fullRawOptionsA = [];
         fullRawOptionsB = [];
 
         // Update Labels based on input
-        if (skuAFilter) {
-            skuALabel.innerHTML = `<i data-lucide="type"></i> ${skuAFilter.toUpperCase()} Options`;
-        } else {
-            skuALabel.innerHTML = `<i data-lucide="type"></i> SKU A Options`;
-        }
-
-        if (skuBFilters.length > 0) {
-            const bText = skuBFilters.join(', ').toUpperCase();
-            skuBLabel.innerHTML = `<i data-lucide="type"></i> ${bText} Options`;
-        } else {
-            skuBLabel.innerHTML = `<i data-lucide="type"></i> SKU B Options`;
-        }
+        skuALabel.innerHTML = skuAData 
+            ? `<i data-lucide="type"></i> ${skuAData.toUpperCase()} Options` 
+            : `<i data-lucide="type"></i> SKU A Options`;
+        
+        skuBLabel.innerHTML = skuBData 
+            ? `<i data-lucide="type"></i> ${skuBData.toUpperCase()} Options` 
+            : `<i data-lucide="type"></i> SKU B Options`;
+        
         lucide.createIcons();
 
-        // Logic for SKU A Side
-        if (skuAFilter) {
-            let skuAOptions = getOptionsForSku(skuAFilter);
-            if (manualOptionsA.length > 0) {
-                // Intersect SKU A parts with manual typed parts 
-                const manualPartsA = new Set(manualOptionsA.map(o => o.part.toLowerCase()));
-                fullRawOptionsA = skuAOptions.filter(o => manualPartsA.has(o.part.toLowerCase()));
-            } else {
-                fullRawOptionsA = skuAOptions;
-            }
-        } else {
-            // No SKU A, only manual options inputted
-            fullRawOptionsA = getDetailedManualOptions(manualOptionsA);
-        }
+        const getEnrichedOptions = (sku) => {
+            if (!sku || imageRows.length === 0) return [];
+            const searchSku = sku.toLowerCase().trim();
+            
+            // 1. Get all unique part numbers for this SKU from Supplier Records
+            const entries = imageRows.filter(r => r.PrSKU.toLowerCase().trim() === searchSku);
+            const seenParts = new Set();
+            const opts = [];
 
-        // Logic for SKU B Side
-        if (skuBFilters.length > 0) {
-            let skuBOptions = [];
-            let seenPartsB = new Set();
-            skuBFilters.forEach(s => {
-                const opts = getOptionsForSku(s);
-                opts.forEach(o => {
-                    const lowPart = o.part.toLowerCase().trim();
-                    if (!seenPartsB.has(lowPart)) {
-                        seenPartsB.add(lowPart);
-                        skuBOptions.push(o);
+            entries.forEach(entry => {
+                const part = entry.ActualManufacturerPartNumber;
+                if (!part) return;
+                const lowPart = part.toLowerCase().trim();
+                if (!seenParts.has(lowPart)) {
+                    seenParts.add(lowPart);
+                    
+                    // 2. Try to find a human-readable name for this part in the Option Mapper file
+                    let mappedName = null;
+                    
+                    // Case A: Check SKU + Part (Specific)
+                    if (masterMatcherOptionMapData.has(searchSku)) {
+                        const skuMappings = masterMatcherOptionMapData.get(searchSku);
+                        const match = skuMappings.find(m => m.part.toLowerCase().trim() === lowPart);
+                        if (match) mappedName = match.name;
                     }
-                });
+                    
+                    // Case B: Check only Part (Global fallback)
+                    if (!mappedName && masterMatcherGlobalOptionMap.has(lowPart)) {
+                        mappedName = masterMatcherGlobalOptionMap.get(lowPart);
+                    }
+                    
+                    opts.push({
+                        name: mappedName || entry.OptionName || 'Option (Unmapped)',
+                        part: part,
+                        sku: entry.PrSKU
+                    });
+                }
             });
 
-            if (manualOptionsB.length > 0) {
-                const manualPartsB = new Set(manualOptionsB.map(o => o.part.toLowerCase()));
-                fullRawOptionsB = skuBOptions.filter(o => manualPartsB.has(o.part.toLowerCase()));
-            } else {
-                fullRawOptionsB = skuBOptions;
-            }
-        } else {
-            fullRawOptionsB = getDetailedManualOptions(manualOptionsB);
-        }
+            return opts;
+        };
+
+        if (skuAData) fullRawOptionsA = getEnrichedOptions(skuAData);
+        if (skuBData) fullRawOptionsB = getEnrichedOptions(skuBData);
 
         allPartsA = new Set(fullRawOptionsA.map(o => o.part.toLowerCase().trim()));
         allPartsB = new Set(fullRawOptionsB.map(o => o.part.toLowerCase().trim()));
@@ -1085,59 +1211,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderOptions('A', fullRawOptionsA);
         renderOptions('B', fullRawOptionsB);
         updateMatcherResults();
-    }
-    
-    // Attaches known Supplier Data (if active) to manual options
-    function getDetailedManualOptions(manualOptions) {
-        if (manualOptions.length === 0) return [];
-        if (imageRows.length === 0) return manualOptions; // Fallback if no DB
-        
-        const enhanced = [];
-        const seenParts = new Set();
-        
-        manualOptions.forEach(m => {
-            const targetLower = m.part.toLowerCase();
-            // Try to find it in the DB to grab Name and real SKU
-            const matchingRow = imageRows.find(r => r.ActualManufacturerPartNumber.toLowerCase() === targetLower);
-            
-            if (!seenParts.has(targetLower)) {
-                seenParts.add(targetLower);
-                if (matchingRow) {
-                    enhanced.push({
-                        name: m.name || matchingRow.OptionName,
-                        part: matchingRow.ActualManufacturerPartNumber,
-                        sku: matchingRow.PrSKU
-                    });
-                } else {
-                    enhanced.push(m);
-                }
-            }
-        });
-        
-        return enhanced;
-    }
-
-    function parseManualOptions(text) {
-        if (!text.trim()) return [];
-
-        const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-        const result = [];
-        const commonHeaders = ['manufacturer part numbers', 'options', 'list', 'description', 'part number', 'part #'];
-
-        lines.forEach(line => {
-            const lower = line.toLowerCase();
-            if (commonHeaders.includes(lower) || commonHeaders.some(h => lower === h + ':')) return;
-
-            if (line.includes(',')) {
-                const parts = line.split(',');
-                const partNumber = parts.pop().trim();
-                const optionName = parts.join(',').trim();
-                if (partNumber) result.push({ name: optionName, part: partNumber, sku: 'Manual Option' });
-            } else {
-                result.push({ name: '', part: line, sku: 'Manual Option' });
-            }
-        });
-        return result;
     }
 
     function renderOptions(type, options) {
@@ -2561,14 +2634,14 @@ document.addEventListener('DOMContentLoaded', () => {
             item.className = `option-item ${isSelected ? 'selected' : ''} ${isShared ? 'shared-option' : ''}`;
             item.innerHTML = `
                 <input type="radio" name="tagSku${type}Option" value="${mpn}" ${isSelected ? 'checked' : ''}>
-                <div class="option-info" style="display: flex; flex-direction: column; gap: 0.4rem; padding: 0.25rem 0;">
+                <div class="option-info" style="display: flex; flex-direction: column; gap: 0.4rem; padding: 0.25rem 0; width: 100%;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <span class="option-name" style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">${name || 'Variant Option'}</span>
                         ${isShared ? '<span class="shared-badge">Same Part#</span>' : ''}
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                         <code class="option-part" style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--primary); font-weight: 500; letter-spacing: -0.01em;">${mpn}</code>
-                        <span style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.4; font-weight: 500;">(${currentSku})</span>
+                        <code style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-main); font-weight: 500; letter-spacing: -0.01em;">${currentSku}</code>
                     </div>
                 </div>
             `;
