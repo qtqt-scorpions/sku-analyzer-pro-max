@@ -29,9 +29,9 @@
 
     <nav class="app-nav">
         <div class="nav-container">
-            <button class="nav-tab active" data-tab="analyzer">
-                <i data-lucide="search-check"></i>
-                Status Analyzer
+            <button class="nav-tab active" data-tab="tag">
+                <i data-lucide="list-checks"></i>
+                Tag Matcher
             </button>
             <button class="nav-tab" data-tab="merger">
                 <i data-lucide="merge"></i>
@@ -45,14 +45,10 @@
                 <i data-lucide="globe"></i>
                 COO Checker
             </button>
-            <button class="nav-tab" data-tab="tag">
-                <i data-lucide="list-checks"></i>
-                Tag Matcher
-            </button>
-            <button class="nav-tab" data-tab="exclusion">
+            <!-- <button class="nav-tab" data-tab="exclusion">
                 <i data-lucide="shield-alert"></i>
                 Exclusion Checker
-            </button>
+            </button> -->
             <button class="nav-tab" data-tab="ai">
                 <i data-lucide="sparkles"></i>
                 AI Analyst
@@ -64,145 +60,6 @@
     </nav>
 
     <main class="app-container">
-        <!-- Tab: Status Analyzer -->
-        <div id="analyzerTab" class="tab-content active">
-            <header class="app-header">
-                <div class="logo">
-                    <span class="icon-container">
-                        <i data-lucide="clipboard-check"></i>
-                    </span>
-                    <h1>Status <span class="gradient-text">Analyzer</span></h1>
-                </div>
-                <p class="subtitle">Analyze status pairs and cross-reference consolidation records.</p>
-            </header>
-
-            <div class="main-grid">
-                <section class="left-col">
-                    <div class="glass-card mb-2">
-                        <div class="card-header mb-1"
-                            style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.5rem;">
-                            <div class="header-title">
-                                <i data-lucide="database"></i>
-                                <h3>1. Consolidation File</h3>
-                            </div>
-                            <div class="mode-toggles"
-                                style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
-                                <button id="masterDataModePasteBtn" class="mode-btn active"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Paste</button>
-                                <button id="masterDataModeFileBtn" class="mode-btn"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">File</button>
-                            </div>
-                        </div>
-
-                        <!-- Active Info Card (Shared) -->
-                        <div id="fileInfoCard" class="file-info-card" style="display: none; margin-bottom: 1.5rem;">
-                            <div class="file-icon-box">
-                                <i data-lucide="file-spreadsheet"></i>
-                            </div>
-                            <div class="file-details">
-                                <span id="displayFileName" class="file-name">filename.csv</span>
-                                <span id="displayFileMeta" class="file-meta">0 records</span>
-                            </div>
-                            <button id="changeFileBtn" class="change-file-btn"><i data-lucide="refresh-ccw"
-                                    style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Change</button>
-                        </div>
-
-                        <!-- Mode: File -->
-                        <div id="masterDataFileArea" class="file-upload-wrapper" style="display: none;">
-                            <input type="file" id="masterFileInput" accept=".csv, .xlsx, .xls" />
-                            <label for="masterFileInput" class="file-label" id="fileLabel">
-                                <i data-lucide="upload-cloud"></i>
-                                <span>Choose CSV File</span>
-                            </label>
-                        </div>
-
-                        <!-- Mode: Paste -->
-                        <div id="masterDataPasteArea">
-                            <textarea id="masterDataPasteInput" class="premium-textarea"
-                                placeholder="Paste consolidation data here (including headers)...&#10;OriginalSKU    NewSKU    PrStatus&#10;SKU-OLD    SKU-NEW    4"
-                                style="height: 150px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;"></textarea>
-                            <div class="controls">
-                                <button id="processMasterPasteBtn" class="btn primary btn-sm w-100"
-                                    style="height: 40px; border-radius: 10px;">
-                                    <i data-lucide="zap"></i> Process Pasted Master
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="glass-card">
-                        <div class="card-header mb-1"
-                            style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                            <div class="header-title">
-                                <i data-lucide="list-tree"></i>
-                                <h2>2. Input Data</h2>
-                            </div>
-                            <div class="mode-toggles"
-                                style="display: flex; gap: 0.5rem; background: #f1f5f9; padding: 0.25rem; border-radius: 8px;">
-                                <button id="modePasteBtn" class="mode-btn active"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Paste</button>
-                                <button id="modeUploadBtn" class="mode-btn"
-                                    style="padding: 0.3rem 0.8rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim);">File</button>
-                            </div>
-                        </div>
-
-                        <!-- Mode: Upload -->
-                        <div id="statusFileUploadArea" class="file-upload-wrapper mb-1" style="display: none;">
-                            <input type="file" id="statusDataFileInput" accept=".csv, .xlsx, .xls" />
-                            <label for="statusDataFileInput" class="file-label" id="statusFileLabel">
-                                <i data-lucide="file-up"></i>
-                                <span>Upload 5-Column CSV</span>
-                            </label>
-                            <div id="statusFileInfoCard" class="file-info-card">
-                                <div class="file-icon-box" style="background: var(--primary);">
-                                    <i data-lucide="file-text"></i>
-                                </div>
-                                <div class="file-details">
-                                    <span id="stFileName" class="file-name">filename.csv</span>
-                                    <span id="stFileMeta" class="file-meta">Ready to analyze</span>
-                                </div>
-                                <button id="changeStFileBtn" class="change-file-btn"><i data-lucide="refresh-ccw"
-                                        style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Change</button>
-                            </div>
-                        </div>
-
-                        <!-- Mode: Paste -->
-                        <div id="statusPasteArea">
-                            <textarea id="statusInput" placeholder="SKU1    SKU2    Stt1    Stt2    TargetBTS"
-                                style="height: 250px;"></textarea>
-                        </div>
-
-                        <div class="controls">
-                            <button id="clearAnalyzerBtn" class="btn secondary">
-                                <i data-lucide="trash-2"></i>
-                                Clear
-                            </button>
-                            <button id="processAnalyzerBtn" class="btn primary">
-                                <i data-lucide="play"></i>
-                                Analyze Data
-                            </button>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="output-section">
-                    <div class="output-header">
-                        <h2>Analysis Results</h2>
-                        <div class="header-actions">
-                            <button id="downloadAnalyzerBtn" class="btn primary-outline btn-sm" style="display: none;">
-                                <i data-lucide="download"></i>
-                                Download CSV
-                            </button>
-                        </div>
-                    </div>
-                    <div id="analyzerResultsContainer" class="results-grid">
-                        <div class="empty-state">
-                            <p>Results will appear here side-by-side with your input.</p>
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </div>
 
         <!-- Tab: SKU Merger -->
         <div id="mergerTab" class="tab-content">
@@ -281,7 +138,8 @@
                             style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 0.5rem;"></i>
                         Supplier & Option Setup
                     </span>
-                    <button id="matcherResetAllBtn" class="btn secondary-outline" style="padding: 0.4rem 1rem; border-radius: 10px; font-size: 0.85rem;">
+                    <button id="matcherResetAllBtn" class="btn secondary-outline"
+                        style="padding: 0.4rem 1rem; border-radius: 10px; font-size: 0.85rem;">
                         <i data-lucide="refresh-ccw" style="width: 14px; height: 14px; margin-right: 0.25rem;"></i>
                         Reset All Data
                     </button>
@@ -295,12 +153,20 @@
                                 <i data-lucide="database"></i>
                                 <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700;">1a. Supplier Records</h2>
                             </div>
-                            <p style="font-size: 0.8rem; color: var(--text-dim); opacity: 0.8; margin: 0.25rem 0 0 0; font-weight: 500;">
+                            <p
+                                style="font-size: 0.8rem; color: var(--text-dim); opacity: 0.8; margin: 0.25rem 0 0 0; font-weight: 500;">
                                 Internal Database > Supplier Part Numbers</p>
-                            
-                            <div class="mode-toggles mt-1" style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border); margin-top: 1rem;">
-                                <button id="matcherDataModePasteBtn" class="mode-btn active" style="flex: 1; padding: 0.35rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;"><i data-lucide="clipboard-paste" style="width: 14px; height: 14px;"></i>Paste</button>
-                                <button id="matcherDataModeFileBtn" class="mode-btn" style="flex: 1; padding: 0.35rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim); display: flex; align-items: center; justify-content: center; gap: 4px;"><i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>File</button>
+
+                            <div class="mode-toggles mt-1"
+                                style="display: flex; gap: 0.5rem; background: var(--bg-main); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--card-border); margin-top: 1rem;">
+                                <button id="matcherDataModePasteBtn" class="mode-btn active"
+                                    style="flex: 1; padding: 0.35rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;"><i
+                                        data-lucide="clipboard-paste"
+                                        style="width: 14px; height: 14px;"></i>Paste</button>
+                                <button id="matcherDataModeFileBtn" class="mode-btn"
+                                    style="flex: 1; padding: 0.35rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim); display: flex; align-items: center; justify-content: center; gap: 4px;"><i
+                                        data-lucide="file-spreadsheet"
+                                        style="width: 14px; height: 14px;"></i>File</button>
                             </div>
                         </div>
 
@@ -313,7 +179,8 @@
                                 <span id="matcherCsvName" class="file-name">filename.csv</span>
                                 <span id="matcherCsvMeta" class="file-meta">0 records</span>
                             </div>
-                            <button id="changeMatcherCsvBtn" class="change-file-btn danger"><i data-lucide="trash" style="width: 14px; height: 14px;"></i></button>
+                            <button id="changeMatcherCsvBtn" class="change-file-btn danger"><i data-lucide="trash"
+                                    style="width: 14px; height: 14px;"></i></button>
                         </div>
 
                         <!-- Mode: File -->
@@ -330,7 +197,8 @@
                             <textarea id="matcherDataPasteInput" class="premium-textarea"
                                 placeholder="Paste supplier data...&#10;PrSKU    SupplierID    PartNumber"
                                 style="height: 120px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;"></textarea>
-                            <button id="processMatcherPasteBtn" class="btn primary btn-sm w-100" style="height: 40px; border-radius: 10px;">
+                            <button id="processMatcherPasteBtn" class="btn primary btn-sm w-100"
+                                style="height: 40px; border-radius: 10px;">
                                 <i data-lucide="zap"></i> Process Pasted Data
                             </button>
                         </div>
@@ -343,7 +211,8 @@
                                 <i data-lucide="map"></i>
                                 <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700;">1b. Option Mapper</h2>
                             </div>
-                            <p style="font-size: 0.8rem; color: var(--text-dim); opacity: 0.8; margin: 0.25rem 0 0 0; font-weight: 500;">
+                            <p
+                                style="font-size: 0.8rem; color: var(--text-dim); opacity: 0.8; margin: 0.25rem 0 0 0; font-weight: 500;">
                                 PMP > Export > Bulk Update Variant Groups</p>
                         </div>
                         <div class="file-upload-wrapper">
@@ -352,14 +221,18 @@
                                 <i data-lucide="upload-cloud"></i>
                                 <span>Upload Option Excel</span>
                             </label>
-                            <div id="matcherOptionMapStatusArea" style="display: none; flex-direction: column; gap: 0.75rem;">
+                            <div id="matcherOptionMapStatusArea"
+                                style="display: none; flex-direction: column; gap: 0.75rem;">
                                 <div id="matcherOptionPillContainer" class="file-pill-container"></div>
-                                <div class="file-actions-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                                <div class="file-actions-row"
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
                                     <label for="matcherOptionMapInput" class="btn-add-more">
                                         <i data-lucide="plus-circle"></i>
                                         <span>Add More</span>
                                     </label>
-                                    <button id="resetMatcherOptionMapBtn" class="change-file-btn danger" title="Clear Mappings"><i data-lucide="trash" style="width: 14px; height: 14px;"></i>Reset</button>
+                                    <button id="resetMatcherOptionMapBtn" class="change-file-btn danger"
+                                        title="Clear Mappings"><i data-lucide="trash"
+                                            style="width: 14px; height: 14px;"></i>Reset</button>
                                 </div>
                             </div>
                         </div>
@@ -367,12 +240,14 @@
 
                     <!-- 2. SKU Pair -->
                     <div class="premium-card" id="matcherSection2" style="grid-column: span 2;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
                             <div class="header-title" style="margin-bottom: 0;">
                                 <i data-lucide="scan-barcode"></i>
                                 <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">2. SKU Pair</h3>
                             </div>
-                            <button id="clearMatcherPairBtn" class="btn secondary-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; border-radius: 8px;">
+                            <button id="clearMatcherPairBtn" class="btn secondary-outline"
+                                style="padding: 0.3rem 0.8rem; font-size: 0.8rem; border-radius: 8px;">
                                 <i data-lucide="eraser" style="width: 14px; height: 14px;"></i>
                             </button>
                         </div>
@@ -386,56 +261,56 @@
             </div>
 
             <div class="matcher-layout" style="display: block; margin-top: 2rem;">
-                    <div class="selection-container">
-                        <div class="premium-card">
-                            <div class="card-header" style="padding-bottom: 0.5rem;">
-                                <h3 id="skuALabel"><i data-lucide="check-circle"
-                                        style="width:18px;height:18px;vertical-align:middle;margin-right:8px;color:var(--primary);"></i>Select
-                                    SKU A Option</h3>
-                            </div>
-                            <div class="search-filter-wrapper mb-1">
-                                <i data-lucide="search" class="search-icon"></i>
-                                <input type="text" id="matcherSkuASearch" placeholder="Filter part numbers..."
-                                    class="subtle-search-input">
-                            </div>
-                            <div id="skuASelectArea" class="option-list">
-                                <p class="empty-text">Paste options to start</p>
-                            </div>
+                <div class="selection-container">
+                    <div class="premium-card">
+                        <div class="card-header" style="padding-bottom: 0.5rem;">
+                            <h3 id="skuALabel"><i data-lucide="check-circle"
+                                    style="width:18px;height:18px;vertical-align:middle;margin-right:8px;color:var(--primary);"></i>Select
+                                SKU A Option</h3>
                         </div>
-                        <div class="premium-card">
-                            <div class="card-header" style="padding-bottom: 0.5rem;">
-                                <h3 id="skuBLabel"><i data-lucide="check-circle"
-                                        style="width:18px;height:18px;vertical-align:middle;margin-right:8px;color:var(--primary);"></i>Select
-                                    SKU B Option</h3>
-                            </div>
-                            <div class="search-filter-wrapper mb-1">
-                                <i data-lucide="search" class="search-icon"></i>
-                                <input type="text" id="matcherSkuBSearch" placeholder="Filter part numbers..."
-                                    class="subtle-search-input">
-                            </div>
-                            <div id="skuBSelectArea" class="option-list">
-                                <p class="empty-text">Paste options to start</p>
-                            </div>
+                        <div class="search-filter-wrapper mb-1">
+                            <i data-lucide="search" class="search-icon"></i>
+                            <input type="text" id="matcherSkuASearch" placeholder="Filter part numbers..."
+                                class="subtle-search-input">
+                        </div>
+                        <div id="skuASelectArea" class="option-list">
+                            <p class="empty-text">Paste options to start</p>
                         </div>
                     </div>
+                    <div class="premium-card">
+                        <div class="card-header" style="padding-bottom: 0.5rem;">
+                            <h3 id="skuBLabel"><i data-lucide="check-circle"
+                                    style="width:18px;height:18px;vertical-align:middle;margin-right:8px;color:var(--primary);"></i>Select
+                                SKU B Option</h3>
+                        </div>
+                        <div class="search-filter-wrapper mb-1">
+                            <i data-lucide="search" class="search-icon"></i>
+                            <input type="text" id="matcherSkuBSearch" placeholder="Filter part numbers..."
+                                class="subtle-search-input">
+                        </div>
+                        <div id="skuBSelectArea" class="option-list">
+                            <p class="empty-text">Paste options to start</p>
+                        </div>
+                    </div>
+                </div>
 
-                    <div class="results-container mt-2">
-                        <div class="premium-card">
-                            <div class="card-header">
-                                <div class="header-title">
-                                    <i data-lucide="table"></i>
-                                    <h2>Filtered Results</h2>
-                                </div>
+                <div class="results-container mt-2">
+                    <div class="premium-card">
+                        <div class="card-header">
+                            <div class="header-title">
+                                <i data-lucide="table"></i>
+                                <h2>Filtered Results</h2>
                             </div>
-                            <div id="matcherResultsContainer" class="table-scroll-wrapper">
-                                <div class="empty-state">
-                                    <p>Upload CSV and select options to see filtered data.</p>
-                                </div>
+                        </div>
+                        <div id="matcherResultsContainer" class="table-scroll-wrapper">
+                            <div class="empty-state">
+                                <p>Upload CSV and select options to see filtered data.</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
         </div>
         <!-- Tab: COO Checker -->
         <div id="cooTab" class="tab-content">
@@ -525,7 +400,7 @@
             </div>
         </div>
         <!-- Tab: Tag Matcher -->
-        <div id="tagTab" class="tab-content">
+        <div id="tagTab" class="tab-content active">
             <header class="app-header">
                 <div class="logo">
                     <span class="icon-container">
@@ -1095,10 +970,10 @@
                 <section class="left-col" style="grid-column: span 12;">
 
 
-                        <div id="aiInputsWrapper" class="ai-cols-wrapper"
-                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                            <!-- Col 1: Database -->
-                            <div class="glass-card" id="aiDbSection">
+                    <div id="aiInputsWrapper" class="ai-cols-wrapper"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <!-- Col 1: Database -->
+                        <div class="glass-card" id="aiDbSection">
                             <div class="header-title mb-1">
                                 <i data-lucide="database"></i>
                                 <h3>1. Product Database</h3>

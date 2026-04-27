@@ -1,4 +1,44 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Application Constants ---
+    const APP_CONSTANTS = {
+        STATUS: {
+            NO: "No",
+            YES: "Yes",
+            TRUE: "TRUE",
+            FALSE: "FALSE",
+            NOT_FOUND: "Not Found",
+            MATCH: "Match",
+            SUCCESS: "success",
+            DANGER: "danger"
+        },
+        REASON: {
+            DIFFERENT_COO: "COO Conflict",
+            VARIANT_MULTI_COUNTRY: "Variant Multi Country",
+            SKU_IS_KIT_OR_COMPOSITE: "SKU is Kit or Composite",
+            EXCLUDED_CLASS: "Excluded Class",
+            EXCLUDED_SKU: "Excluded SKU",
+            EXCLUDED_SUPPLIER_PART: "Excluded Supplier Part",
+            EXCLUDED_SUPPLIER: "Excluded Supplier",
+            KIT_PRSKU: "SKU is a KitPrSKU",
+            COMPOSITE_PRSKU: "SKU is a CompositePrSKU",
+            BOTH_KIT: "Both SKUs are KitPrSKU",
+            BOTH_COMPOSITE: "Both SKUs are CompositePrSKU",
+            BOTH_EXCLUDED_CLASS: "Both SKUs belong to an Excluded Class (Class ID: )",
+            BOTH_EXCLUDED_SKU: "Both SKUs are Excluded SKU",
+            NONE_SPECIFIED: "No Reason Specified",
+            NO_EXCLUSIONS: "No Exclusions"
+        },
+        ISSUE_TYPE: {
+            KIT: 'Kit',
+            COMPOSITE: 'Composite',
+            CLASS: 'Class',
+            SUPPLIER: 'Supplier',
+            BRAND: 'Brand',
+            SKU: 'SKU',
+            PART: 'Part'
+        }
+    };
+
     // --- Shared UI Elements ---
     const toast = document.getElementById('toast');
     const navTabs = document.querySelectorAll('.nav-tab');
@@ -12,37 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const statsContainer = document.getElementById('stats');
     const downloadBtn = document.getElementById('downloadBtn');
 
-    // --- Status Analyzer Elements ---
-    const masterFileInput = document.getElementById('masterFileInput');
-    const fileLabel = document.getElementById('fileLabel');
-    const fileInfoCard = document.getElementById('fileInfoCard');
-    const displayFileName = document.getElementById('displayFileName');
-    const displayFileMeta = document.getElementById('displayFileMeta');
-    const changeFileBtn = document.getElementById('changeFileBtn');
-    const masterDataModeFileBtn = document.getElementById('masterDataModeFileBtn');
-    const masterDataModePasteBtn = document.getElementById('masterDataModePasteBtn');
-    const masterDataFileArea = document.getElementById('masterDataFileArea');
-    const masterDataPasteArea = document.getElementById('masterDataPasteArea');
-    const masterDataPasteInput = document.getElementById('masterDataPasteInput');
-    const processMasterPasteBtn = document.getElementById('processMasterPasteBtn');
-
-    const statusDataFileInput = document.getElementById('statusDataFileInput');
-    const statusFileLabel = document.getElementById('statusFileLabel');
-    const statusFileInfoCard = document.getElementById('statusFileInfoCard');
-    const stFileName = document.getElementById('stFileName');
-    const stFileMeta = document.getElementById('stFileMeta');
-    const changeStFileBtn = document.getElementById('changeStFileBtn');
-
-    const modeUploadBtn = document.getElementById('modeUploadBtn');
-    const modePasteBtn = document.getElementById('modePasteBtn');
-    const statusFileUploadArea = document.getElementById('statusFileUploadArea');
-    const statusPasteArea = document.getElementById('statusPasteArea');
-
-    const statusInput = document.getElementById('statusInput');
-    const processAnalyzerBtn = document.getElementById('processAnalyzerBtn');
-    const clearAnalyzerBtn = document.getElementById('clearAnalyzerBtn');
-    const analyzerResultsContainer = document.getElementById('analyzerResultsContainer');
-    const downloadAnalyzerBtn = document.getElementById('downloadAnalyzerBtn');
 
     // --- COO Checker Elements ---
     const cooCsvInput = document.getElementById('cooCsvInput');
@@ -58,10 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadCooBtn = document.getElementById('downloadCooBtn');
 
     let processedGroups = [];
-    let analyzerExportData = [];
-    let masterData = new Map(); // OriginalSKU -> NewSKU
-    let currentStatusFileContent = null;
-    let analyzerMode = 'paste'; // 'upload' or 'paste'
 
     let masterCOOData = new Map(); // SKU -> Country of Origin
     let cooExportData = [];
@@ -136,12 +141,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (aiToggleDbBatchBtn) {
         const aiDbSection = document.getElementById('aiDbSection');
         const aiBatchSection = document.getElementById('aiBatchSection');
-        
+
         aiToggleDbBatchBtn.addEventListener('click', () => {
             const isHidden = aiDbSection.style.display === 'none';
             aiDbSection.style.display = isHidden ? 'block' : 'none';
             aiBatchSection.style.display = isHidden ? 'block' : 'none';
-            
+
             aiDbBatchToggleText.textContent = isHidden ? 'Hide DB & Batch' : 'Show DB & Batch';
             aiDbBatchToggleIcon.setAttribute('data-lucide', isHidden ? 'eye-off' : 'eye');
             lucide.createIcons();
@@ -161,31 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    modeUploadBtn.addEventListener('click', () => setAnalyzerMode('upload'));
-    modePasteBtn.addEventListener('click', () => setAnalyzerMode('paste'));
-
-    function setAnalyzerMode(mode) {
-        analyzerMode = mode;
-        if (mode === 'upload') {
-            modeUploadBtn.classList.add('active');
-            modeUploadBtn.style.background = '#3b82f6';
-            modeUploadBtn.style.color = 'white';
-            modePasteBtn.classList.remove('active');
-            modePasteBtn.style.background = 'transparent';
-            modePasteBtn.style.color = 'var(--text-dim)';
-            statusFileUploadArea.style.display = 'block';
-            statusPasteArea.style.display = 'none';
-        } else {
-            modePasteBtn.classList.add('active');
-            modePasteBtn.style.background = '#3b82f6';
-            modePasteBtn.style.color = 'white';
-            modeUploadBtn.classList.remove('active');
-            modeUploadBtn.style.background = 'transparent';
-            modeUploadBtn.style.color = 'var(--text-dim)';
-            statusFileUploadArea.style.display = 'none';
-            statusPasteArea.style.display = 'block';
-        }
-    }
 
     // --- SKU Merger Logic ---
     // ... (skipped for brevity, but stays same)
@@ -325,461 +305,6 @@ document.addEventListener('DOMContentLoaded', () => {
         else reader.readAsText(file);
     }
 
-    // --- Status Analyzer Logic ---
-    masterFileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        processFile(file, (content) => handleMasterData(content, file.name));
-    });
-
-    masterDataModeFileBtn.addEventListener('click', () => {
-        masterDataModeFileBtn.classList.add('active');
-        masterDataModePasteBtn.classList.remove('active');
-        masterDataFileArea.style.display = 'block';
-        masterDataPasteArea.style.display = 'none';
-        lucide.createIcons();
-    });
-
-    masterDataModePasteBtn.addEventListener('click', () => {
-        masterDataModePasteBtn.classList.add('active');
-        masterDataModeFileBtn.classList.remove('active');
-        masterDataPasteArea.style.display = 'block';
-        masterDataFileArea.style.display = 'none';
-        lucide.createIcons();
-    });
-
-    processMasterPasteBtn.addEventListener('click', () => {
-        const content = masterDataPasteInput.value.trim();
-        if (!content) {
-            showToast("Please paste some data first.");
-            return;
-        }
-        handleMasterData(content, "Pasted Master Data");
-        lucide.createIcons();
-    });
-
-    function handleMasterData(content, fileName) {
-        const lines = content.split(/\r?\n/).filter(line => line.trim());
-        if (lines.length === 0) return;
-
-        masterData.clear();
-        lines.forEach((line, index) => {
-            if (index === 0 && (line.toLowerCase().includes('sku') || line.toLowerCase().includes('original'))) return;
-            const parts = line.split(/[,;\t]/);
-            if (parts.length >= 2) {
-                const original = parts[0].trim().replace(/^["']|["']$/g, '');
-                const next = parts[1].trim().replace(/^["']|["']$/g, '');
-                if (original) {
-                    if (!masterData.has(original)) masterData.set(original, new Set());
-                    masterData.get(original).add(next);
-                }
-            }
-        });
-
-        displayFileName.textContent = fileName;
-        displayFileMeta.textContent = `${masterData.size.toLocaleString()} records loaded`;
-
-        // UI Flow based on mode
-        if (masterDataModeFileBtn.classList.contains('active')) {
-            masterDataFileArea.style.display = 'none';
-            fileLabel.style.display = 'none';
-        }
-
-        fileInfoCard.style.display = 'flex';
-        fileInfoCard.classList.add('active');
-        lucide.createIcons();
-    }
-
-    changeFileBtn.addEventListener('click', () => {
-        fileInfoCard.style.display = 'none';
-        fileInfoCard.classList.remove('active');
-
-        // Restore based on mode
-        if (masterDataModeFileBtn.classList.contains('active')) {
-            fileLabel.style.display = 'flex';
-            masterDataFileArea.style.display = 'block';
-            masterFileInput.value = '';
-        } else {
-            // Already visible in paste mode
-        }
-
-        masterData.clear();
-    });
-
-    // Handle Status Data File
-    statusDataFileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        processFile(file, (content) => {
-            currentStatusFileContent = content;
-            stFileName.textContent = file.name;
-            statusFileLabel.style.display = 'none';
-            statusFileInfoCard.classList.add('active');
-            lucide.createIcons();
-        });
-    });
-
-    changeStFileBtn.addEventListener('click', () => {
-        statusFileInfoCard.classList.remove('active');
-        statusFileLabel.style.display = 'flex';
-        statusDataFileInput.value = '';
-        currentStatusFileContent = null;
-    });
-
-    processAnalyzerBtn.addEventListener('click', () => {
-        let input = "";
-        if (analyzerMode === 'upload') {
-            if (!currentStatusFileContent) {
-                showToast("Please upload a source data file or switch to Paste mode.");
-                return;
-            }
-            input = currentStatusFileContent;
-        } else {
-            input = statusInput.value.trim();
-            if (!input) return;
-        }
-
-        // Only enforce master data if the input contains consolidation-related keywords
-        const IR_CONSO = "internally removed - consolidated/duplicate";
-        if (masterData.size === 0 && input.toLowerCase().includes("consolidated")) {
-            // We'll proceed but show a warning toast
-            showToast("Note: No Consolidation File loaded. Rows requiring it will be skipped.");
-        }
-
-        analyzeStatuses(input);
-    });
-
-    downloadAnalyzerBtn.addEventListener('click', () => {
-        if (analyzerExportData.length === 0) return;
-        downloadAnalyzerCSV();
-    });
-
-    function downloadAnalyzerCSV() {
-        const headers = ["SKU1", "SKU2", "Target", "Resolved?", "Resolution", "Image + Tags Updated?", "Note - Details (TH AIPN - Conso)", "Reason Not Resolved", "Note - Details"];
-
-        let csvContent = headers.join(",") + "\n";
-
-        analyzerExportData.forEach(row => {
-            const line = [
-                `"${row.sku1 || ''}"`,
-                `"${row.sku2 || ''}"`,
-                `"${row.resolved === 'Yes' ? row.target : ''}"`,
-                `"${row.resolved}"`,
-                `"${row.resolved === 'Yes' ? row.resolution : ''}"`,
-                `""`, // Image + Tags Updated?
-                `"${row.noteAipn !== undefined ? row.noteAipn : (row.resolved === 'Yes' ? row.note : '')}"`, // AIPN Note
-                `""`, // Reason Not Resolved
-                `"${row.noteDetails !== undefined ? row.noteDetails : (row.resolved === 'No' ? row.note : '')}"`  // Note Details
-            ];
-            csvContent += line.join(",") + "\n";
-        });
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `status_analysis_${new Date().toISOString().slice(0, 10)}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    clearAnalyzerBtn.addEventListener('click', () => {
-        statusInput.value = '';
-        analyzerResultsContainer.innerHTML = '<div class="empty-state"><p>Upload a master file and paste data to see analysis.</p></div>';
-    });
-
-    function analyzeStatuses(text) {
-        if (!text) return;
-
-        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-        if (lines.length === 0) return;
-
-        analyzerResultsContainer.innerHTML = '';
-        analyzerExportData = []; // Clear old results
-        let validLines = 0;
-        let skipCount = 0;
-
-        lines.forEach((line, index) => {
-            const lowerLine = line.toLowerCase();
-
-            // Skip headers
-            if (lowerLine.includes('sku1') || lowerLine.includes('targetbts') || (lowerLine.includes('sku') && lowerLine.includes('status'))) {
-                return;
-            }
-
-            // Adaptive Splitting
-            let parts = [];
-            const separators = [/\t/, /  +/, ',', ';'];
-
-            for (let sep of separators) {
-                const trial = line.split(sep).map(s => s.trim().replace(/^["']|["']$/g, ''));
-                if (trial.length >= 5) {
-                    parts = trial;
-                    break;
-                }
-            }
-
-            if (parts.length < 5) {
-                parts = line.split(/[\t]+| {2,}/).map(s => s.trim().replace(/^["']|["']$/g, ''));
-            }
-
-            if (parts.length < 5) {
-                skipCount++;
-                return;
-            }
-
-            validLines++;
-            const [sku1, sku2, stt1, stt2, targetBTS] = parts;
-
-            let target, source, sttTarget, sttSource;
-
-            // Detect user's Excel format (OriginalSKU, NewSKU, PrStatus, PrMaID, MaName)
-            // PrStatus (stt1) is usually a number like '4'
-            const isUserExcel = parts.length === 5 && !isNaN(stt1) && parts[4].includes(' ');
-
-            if (isUserExcel) {
-                source = sku1;
-                target = sku2;
-                sttSource = "internally removed - consolidated/duplicate";
-                sttTarget = stt1;
-            } else if (targetBTS === sku1) {
-                target = sku1; sttTarget = stt1;
-                source = sku2; sttSource = stt2;
-            } else {
-                target = sku2; sttTarget = stt2;
-                source = sku1; sttSource = stt1;
-            }
-
-            const result = generateAnalysis(source, target, sttSource, sttTarget);
-            if (result) {
-                result.sku1 = sku1;
-                result.sku2 = sku2;
-                result.export.sku1 = sku1;
-                result.export.sku2 = sku2;
-                analyzerExportData.push(result.export);
-                renderAnalyzerResult(result, index);
-            }
-        });
-
-        downloadAnalyzerBtn.style.display = analyzerExportData.length > 0 ? 'flex' : 'none';
-
-        if (validLines === 0 && skipCount > 0) {
-            analyzerResultsContainer.innerHTML = `
-                <div class="result-card" style="border-color: #fecaca; background: #fff1f2;">
-                    <div class="sku-list" style="flex-direction: column; align-items: flex-start;">
-                        <span class="sku-tag danger">Formatting Error</span>
-                        <div class="result-text" style="color: #991b1b;">
-                            Found ${skipCount} rows that don't have enough columns. Please ensure you provide all 5 columns: <strong>SKU1, SKU2, Stt1, Stt2, TargetBTS</strong>.
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else if (skipCount > 0) {
-            showToast(`Analyzed ${validLines} lines. Skipped ${skipCount} rows due to column mismatch.`);
-        }
-
-        lucide.createIcons();
-    }
-
-    function generateAnalysis(source, target, sttSource, sttTarget) {
-        const IR_CONSO = "internally removed - consolidated/duplicate";
-        const BARRIER = "IR Visual Duplicate Barrier";
-
-        // Neutral statuses (ignored)
-        const neutralStatuses = [
-            "live product",
-            "can be deleted",
-            "admins can sell - visual duplicate",
-            "4"
-        ];
-
-        const s1 = (sttSource || "").toLowerCase().trim();
-        const s2 = (sttTarget || "").toLowerCase().trim();
-
-        const isNeutral = (s) => neutralStatuses.includes(s);
-        const isConso = (s) => s === IR_CONSO;
-        const isBarrier = (s) => !isNeutral(s) && !isConso(s);
-
-        // If both are live/neutral, we don't need to analyze
-        if (isNeutral(s1) && isNeutral(s2)) return null;
-
-        const warnings = [];
-        const checkMultiple = (sku, status) => {
-            if (isConso(status)) {
-                const targets = masterData.get(sku);
-                if (targets && targets.size > 1) {
-                    warnings.push(`SKU ${sku} has multiple targets recorded.`);
-                }
-            }
-        };
-        checkMultiple(source, s1);
-        checkMultiple(target, s2);
-
-        const getConsoInfo = (orig, next) => {
-            const targets = masterData.get(orig);
-            return (targets && targets.has(next));
-        };
-
-        const getDisplayLabel = (s) => {
-            // Capitalize first letter of each word for display
-            return s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        };
-
-        // --- Logic: Consolidated ---
-        if (isConso(s1)) {
-            if (getConsoInfo(source, target)) {
-                // New logic: Check if target status is NOT Live Product (Status 4 or "live product")
-                if (s2 !== "4" && s2 !== "live product") {
-                    warnings.push(`Target SKU ${target} is not in Live Product status`);
-                }
-
-                const txt = `SKU ${source} was consolidated into SKU ${target}`;
-                return {
-                    tags: [
-                        { text: target, type: 'success' },
-                        { text: 'Yes', type: 'success' },
-                        { text: 'Consolidated', type: 'success' }
-                    ],
-                    sentence: txt, copy: txt, warnings,
-                    export: { target, resolved: 'Yes', resolution: 'Consolidated', note: txt }
-                };
-            }
-        }
-
-        if (isConso(s1) && isConso(s2)) {
-            const mSource = masterData.get(source);
-            const mTarget = masterData.get(target);
-            if (mSource && mTarget) {
-                let commonTarget = null;
-                for (let sku of mSource) {
-                    if (mTarget.has(sku)) {
-                        commonTarget = sku;
-                        break;
-                    }
-                }
-
-                if (commonTarget) {
-                    const txt = `Both SKUs were consolidated into SKU ${commonTarget}`;
-                    return {
-                        tags: [{ text: commonTarget, type: 'success' }, { text: 'Consolidated', type: 'success' }],
-                        sentence: txt, copy: txt, warnings,
-                        export: { target: commonTarget, resolved: 'Yes', resolution: 'Consolidated', note: txt }
-                    };
-                } else {
-                    const sList = Array.from(mSource).join(', ');
-                    const tList = Array.from(mTarget).join(', ');
-                    const combinedList = `${sList},${tList}`;
-                    
-                    warnings.push("No common target");
-
-                    return {
-                        tags: [],
-                        sentence: "",
-                        copy: combinedList,
-                        isError: true,
-                        warnings,
-                        export: { target: '', resolved: '', resolution: '', note: '', noteAipn: combinedList, noteDetails: '' }
-                    };
-                }
-            }
-        }
-
-        // --- Logic: Barriers (Supplier Discontinued, Visual Duplicate, and anything else not Neutral/Conso) ---
-        if (isBarrier(s1) && isBarrier(s2)) {
-            const txt = (s1 === s2)
-                ? `Both SKUs are in ${getDisplayLabel(s1)} status`
-                : `Source SKU ${source} is in ${getDisplayLabel(s1)} status; Target SKU ${target} is in ${getDisplayLabel(s2)} status`;
-            return {
-                tags: [{ text: target, type: 'success' }, { text: 'Yes', type: 'success' }, { text: BARRIER, type: 'warning' }],
-                sentence: txt, copy: txt, warnings,
-                export: { target, resolved: 'Yes', resolution: BARRIER, note: txt }
-            };
-        }
-
-        if (isBarrier(s2) && isNeutral(s1)) {
-            const txt = `Target SKU ${target} is in ${getDisplayLabel(s2)} status`;
-            return {
-                tags: [{ text: 'No', type: 'danger' }],
-                sentence: txt, copy: txt, warnings,
-                export: { target, resolved: 'No', resolution: BARRIER, note: txt }
-            };
-        }
-
-        if (isBarrier(s1)) {
-            const txt = `Source SKU ${source} is in ${getDisplayLabel(s1)} status`;
-            return {
-                tags: [{ text: target, type: 'success' }, { text: 'Yes', type: 'success' }, { text: BARRIER, type: 'warning' }],
-                sentence: txt, copy: txt, warnings,
-                export: { target, resolved: 'Yes', resolution: BARRIER, note: txt }
-            };
-        }
-
-        return null;
-    }
-
-    function renderAnalyzerResult(result, index) {
-        const card = document.createElement('div');
-        card.className = 'result-card';
-        card.style.animation = `fadeInUp 0.5s ease-out ${index * 0.03}s both`;
-
-        if (result.isError) {
-            card.style.borderColor = '#ef4444';
-            card.style.borderWidth = '2px';
-            card.style.background = '#fff1f2';
-        }
-
-        const leftContent = document.createElement('div');
-        leftContent.className = 'sku-list';
-        leftContent.style.flexDirection = 'column';
-        leftContent.style.alignItems = 'flex-start';
-
-        const tagContainer = document.createElement('div');
-        tagContainer.className = 'sku-list';
-        tagContainer.style.marginBottom = '0.5rem';
-
-        if (result.sku1 && result.sku2) {
-            const span = document.createElement('span');
-            span.className = 'sku-tag';
-            span.textContent = `${result.sku1},${result.sku2}`;
-            tagContainer.appendChild(span);
-        }
-
-        result.tags.forEach(tag => {
-            const span = document.createElement('span');
-            span.className = `sku-tag ${tag.type}`;
-            span.textContent = tag.text;
-            tagContainer.appendChild(span);
-        });
-
-        const textDiv = document.createElement('div');
-        textDiv.className = 'result-text';
-        textDiv.textContent = result.sentence;
-
-        leftContent.appendChild(tagContainer);
-        leftContent.appendChild(textDiv);
-
-        if (result.warnings && result.warnings.length > 0) {
-            result.warnings.forEach(w => {
-                const warnDiv = document.createElement('div');
-                warnDiv.className = 'analyzer-warning';
-                warnDiv.innerHTML = `<i data-lucide="alert-triangle"></i> ${w}`;
-                leftContent.appendChild(warnDiv);
-            });
-        }
-
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'copy-btn';
-        copyBtn.innerHTML = '<i data-lucide="copy"></i> Copy Note';
-        copyBtn.onclick = () => {
-            navigator.clipboard.writeText(result.copy).then(showToast);
-        };
-
-        card.appendChild(leftContent);
-        card.appendChild(copyBtn);
-        analyzerResultsContainer.appendChild(card);
-    }
 
     // --- Option Matcher Elements ---
     const matcherCsvInput = document.getElementById('matcherCsvInput');
@@ -839,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (files.length === 0) return;
 
         showToast(`Loading ${files.length} mapping file(s)...`);
-        
+
         for (const file of files) {
             await new Promise((resolve) => {
                 const reader = new FileReader();
@@ -864,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (rawRows.length < 2) { resolve(); return; }
 
                         let skuIdx = -1, mpnIdx = -1;
-                        let variantPairs = []; 
+                        let variantPairs = [];
                         let headerRowIdx = -1;
 
                         // Detect headers (Exact logic from Tag Matcher)
@@ -872,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             const row = rawRows[i];
                             if (!row || !Array.isArray(row)) continue;
                             const normalized = row.map(cell => String(cell || "").toLowerCase().trim());
-                            
+
                             let tempSkuIdx = normalized.findIndex(s => s.includes('wayfair listing') || s === 'sku' || s === 'prsku');
                             let tempMpnIdx = normalized.findIndex(s => s.includes('manufacturer part number') || s === 'mpn' || s === 'part number');
 
@@ -912,10 +437,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                         variantPartsSet.add(`${groupName}: ${attrValue}`);
                                     }
                                 });
-                                
+
                                 const partArray = Array.from(variantPartsSet);
                                 const constructedName = partArray.length > 0 ? partArray.join(', ') : "";
-                                
+
                                 if (constructedName) {
                                     const cleanSku = sku.toLowerCase().trim();
                                     const cleanMpn = mpn.toLowerCase().trim();
@@ -989,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
         matcherCsvInfo.classList.remove('active');
         matcherCsvLabel.style.display = 'flex';
         matcherCsvInput.value = '';
-        
+
         // Clear Mappings
         masterMatcherOptionMapData.clear();
         matcherLoadedFileNames = [];
@@ -997,12 +522,12 @@ document.addEventListener('DOMContentLoaded', () => {
         matcherOptionMapLabel.style.display = 'flex';
         matcherOptionMapStatusArea.style.display = 'none';
         matcherOptionMapInput.value = '';
-        
+
         // Clear UI
         skuPairInput.value = '';
         selectedPartA = null;
         selectedPartB = null;
-        
+
         processCombinedMatcherInput();
         showToast("All Option Matcher data reset.");
     });
@@ -1088,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
         matcherCsvMeta.textContent = `${imageRows.length.toLocaleString()} records loaded`;
         matcherCsvInfo.style.display = 'flex';
         matcherCsvInfo.classList.add('active');
-        
+
         if (matcherDataModeFileBtn.classList.contains('active')) {
             matcherDataFileArea.style.display = 'none';
             matcherCsvLabel.style.display = 'none';
@@ -1140,20 +665,20 @@ document.addEventListener('DOMContentLoaded', () => {
         fullRawOptionsB = [];
 
         // Update Labels based on input
-        skuALabel.innerHTML = skuAData 
-            ? `<i data-lucide="type"></i> ${skuAData.toUpperCase()} Options` 
+        skuALabel.innerHTML = skuAData
+            ? `<i data-lucide="type"></i> ${skuAData.toUpperCase()} Options`
             : `<i data-lucide="type"></i> SKU A Options`;
-        
-        skuBLabel.innerHTML = skuBData 
-            ? `<i data-lucide="type"></i> ${skuBData.toUpperCase()} Options` 
+
+        skuBLabel.innerHTML = skuBData
+            ? `<i data-lucide="type"></i> ${skuBData.toUpperCase()} Options`
             : `<i data-lucide="type"></i> SKU B Options`;
-        
+
         lucide.createIcons();
 
         const getEnrichedOptions = (sku) => {
             if (!sku || imageRows.length === 0) return [];
             const searchSku = sku.toLowerCase().trim();
-            
+
             // 1. Get all unique part numbers for this SKU from Supplier Records
             const entries = imageRows.filter(r => r.PrSKU.toLowerCase().trim() === searchSku);
             const seenParts = new Set();
@@ -1165,22 +690,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const lowPart = part.toLowerCase().trim();
                 if (!seenParts.has(lowPart)) {
                     seenParts.add(lowPart);
-                    
+
                     // 2. Try to find a human-readable name for this part in the Option Mapper file
                     let mappedName = null;
-                    
+
                     // Case A: Check SKU + Part (Specific)
                     if (masterMatcherOptionMapData.has(searchSku)) {
                         const skuMappings = masterMatcherOptionMapData.get(searchSku);
                         const match = skuMappings.find(m => m.part.toLowerCase().trim() === lowPart);
                         if (match) mappedName = match.name;
                     }
-                    
+
                     // Case B: Check only Part (Global fallback)
                     if (!mappedName && masterMatcherGlobalOptionMap.has(lowPart)) {
                         mappedName = masterMatcherGlobalOptionMap.get(lowPart);
                     }
-                    
+
                     opts.push({
                         name: mappedName || entry.OptionName || 'Option (Unmapped)',
                         part: part,
@@ -1619,9 +1144,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 if (coos1.length > 1 || coos2.length > 1) {
-                    resultRow.resolved = "No";
-                    resultRow.reason = "Different Country of Origin";
-                    resultRow.note = "Variant Multi Country";
+                    resultRow.resolved = APP_CONSTANTS.STATUS.NO;
+                    resultRow.reason = APP_CONSTANTS.REASON.DIFFERENT_COO;
+                    resultRow.note = APP_CONSTANTS.REASON.VARIANT_MULTI_COUNTRY;
                 } else {
                     const val1 = coos1[0] || null;
                     const val2 = coos2[0] || null;
@@ -1632,8 +1157,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         // skip
                     } else {
                         // Difference found
-                        resultRow.resolved = "No";
-                        resultRow.reason = "Different Country of Origin";
+                        resultRow.resolved = APP_CONSTANTS.STATUS.NO;
+                        resultRow.reason = APP_CONSTANTS.REASON.DIFFERENT_COO;
                         const showNull = (v) => v === null ? "Null" : v;
                         resultRow.note = `${showNull(val1)} / ${showNull(val2)}`;
                     }
@@ -1667,7 +1192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         cooExportData.forEach((row, idx) => {
-            const statusTag = row.resolved ? `<span class="sku-tag danger">${row.resolved}</span>` : "";
+            const statusTag = row.resolved ? `<span class="sku-tag ${APP_CONSTANTS.STATUS.DANGER}">${row.resolved}</span>` : "";
             const copyNoteJs = `navigator.clipboard.writeText('${row.note.replace(/'/g, "\\'")}').then(() => { const t = document.getElementById('toast'); t.textContent = 'Copied to clipboard'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); })`;
             tableHtml += `
                 <tr>
@@ -1851,7 +1376,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         lucide.createIcons();
     });
-    
+
     tagCsvInput.addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
@@ -1966,11 +1491,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                     let tempSkuIdx = normalized.findIndex(s => s && (s.includes('listing') || s.includes('prsku') || s === 'sku'));
                                     let tempMpnIdx = normalized.findIndex(s => s && (s.includes('manufacturer') || s.includes('mpn') || s.includes('part number')));
                                     if (tempSkuIdx !== -1 && tempMpnIdx !== -1) {
-                                        headerIdx = i; 
-                                        headers = parts.map(p => String(p || "").trim()); 
-                                        skuIdx = tempSkuIdx; 
-                                        mpnIdx = tempMpnIdx; 
-                                        foundHeader = true; 
+                                        headerIdx = i;
+                                        headers = parts.map(p => String(p || "").trim());
+                                        skuIdx = tempSkuIdx;
+                                        mpnIdx = tempMpnIdx;
+                                        foundHeader = true;
 
                                         // Look ahead up to 3 rows for better headers (CSV version)
                                         for (let walk = 1; walk <= 3; walk++) {
@@ -2061,7 +1586,7 @@ document.addEventListener('DOMContentLoaded', () => {
         masterTagData.clear();
         tagFilesLoadedCount = 0;
         tagLoadedFilesList = [];
-        
+
         tagCsvInput.value = '';
         tagCsvInfo.style.display = 'none';
         tagFileStatusArea.style.display = 'none';
@@ -2113,7 +1638,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         let skuIdx = -1, mpnIdx = -1;
                         // Variant columns: stores column indices for Grouping and Attribute
                         // Format: [ {group: idx, attr: idx}, ... ]
-                        let variantPairs = []; 
+                        let variantPairs = [];
                         let headerRowIdx = -1;
 
                         // Detect headers
@@ -2121,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             const row = rawRows[i];
                             if (!row || !Array.isArray(row)) continue;
                             const normalized = row.map(cell => String(cell || "").toLowerCase().trim());
-                            
+
                             let tempSkuIdx = normalized.findIndex(s => s.includes('wayfair listing') || s === 'sku' || s === 'prsku');
                             let tempMpnIdx = normalized.findIndex(s => s.includes('manufacturer part number') || s === 'mpn' || s === 'part number');
 
@@ -2165,7 +1690,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         parts.add(`${groupName}: ${attrValue}`);
                                     }
                                 });
-                                
+
                                 const partArray = Array.from(parts);
                                 // Construct the name without Part Number (since it's displayed separately below)
                                 // If no variants found, leave it blank (common for single-option SKUs)
@@ -2261,19 +1786,19 @@ document.addEventListener('DOMContentLoaded', () => {
                             row.forEach((cell, idx) => {
                                 const s = String(cell || "").toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
                                 if (!s) return;
-                                
-                                if (s.includes('wayfair listing') || s === 'sku' || s.includes('prsku') || s.includes('listing id')) { 
+
+                                if (s.includes('wayfair listing') || s === 'sku' || s.includes('prsku') || s.includes('listing id')) {
                                     if (tempMap.sku === -1) { tempMap.sku = idx; matchCount++; }
-                                } 
-                                else if (s.includes('manufacturer part number') || s.includes('mpn') || s.includes('part number') || s.includes('model number')) { 
+                                }
+                                else if (s.includes('manufacturer part number') || s.includes('mpn') || s.includes('part number') || s.includes('model number')) {
                                     if (tempMap.part === -1) { tempMap.part = idx; matchCount++; }
-                                } 
-                                else if (s.includes('marketing copy') || s.includes('description') || s.includes('copy') || s.includes('listing text') || s.includes('listing description') || s.includes('about the product')) { 
+                                }
+                                else if (s.includes('marketing copy') || s.includes('description') || s.includes('copy') || s.includes('listing text') || s.includes('listing description') || s.includes('about the product')) {
                                     if (tempMap.desc === -1) { tempMap.desc = idx; matchCount++; }
-                                } 
-                                else if (s.includes('bullet') || s.includes('feature')) { 
+                                }
+                                else if (s.includes('bullet') || s.includes('feature')) {
                                     if (!tempMap.bullets.includes(idx)) { tempMap.bullets.push(idx); matchCount++; }
-                                } 
+                                }
                                 else if (s.includes('product name') || s.includes('title') || s.includes('item name') || s.includes('product title')) {
                                     if (tempMap.name === -1) { tempMap.name = idx; matchCount++; }
                                 }
@@ -2301,7 +1826,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     desc: colMap.desc !== -1 ? String(row[colMap.desc] || "").trim() : "",
                                     bullets: colMap.bullets.map(idx => String(row[idx] || "").trim()).filter(Boolean)
                                 };
-                                
+
                                 // Strict indexing logic
                                 const hasData = entry.name || entry.desc || entry.bullets.length > 0;
                                 if (hasData) {
@@ -2309,7 +1834,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     if (skuValue && partValue === 'wayfair sku') {
                                         tagCatalogData.set(skuValue, entry);
                                     }
-                                    
+
                                     // For other rows, index by the specific part number
                                     if (partValue && partValue !== 'wayfair sku') {
                                         tagCatalogData.set(partValue, entry);
@@ -2366,7 +1891,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderTagDescView(sku1, sku2) {
         if (!tagCatalogData || tagCatalogData.size === 0) return;
         tagDescComparisonResults.innerHTML = '';
-        
+
         // Find best data match: try SKU first (case insensitive), then selected parts
         const findData = (sku, part) => {
             const s = (sku || "").trim().toLowerCase();
@@ -2685,7 +2210,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clean = clean.replace(/([a-z])([A-Z])/g, '$1 $2')
                 .replace(/_/g, ' ')
                 .toLowerCase();
-            
+
             // Title Case
             return clean.split(' ')
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -2716,7 +2241,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'store', 'class id', 'class name',
             'attributes why', 'attributes why additional', 'is attributes edited'
         ];
-        
+
         const userFilters = tagFilterInternalInput.value.split('\n')
             .map(t => t.trim().toLowerCase())
             .filter(Boolean);
@@ -2726,7 +2251,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!tag) return false;
                 const lower = tag.toLowerCase().trim();
                 const human = humanizeTagName(tag).toLowerCase();
-                
+
                 // If user entered filters, prioritize showing them even if they're in standard exclusion list
                 if (userFilters.length > 0 && userFilters.some(f => lower.includes(f) || human.includes(f))) {
                     return true;
@@ -2759,7 +2284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         renderTagResults(selectedTagPartA, selectedTagPartB);
-        
+
         if (isTagDescViewVisible) {
             renderTagDescView(currentTagSkus[0], currentTagSkus[1]);
         }
@@ -2777,21 +2302,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // Apply filtering logic based on current tag filter
         const filteredData = tagExportData.filter(row => {
             if (currentTagFilter === 'false') return !row.match;
-            
+
             // Only apply user keywords when the "filtered" tab is active
             if (currentTagFilter === 'filtered') {
                 const userFilters = tagFilterInternalInput.value.split('\n')
                     .map(t => t.trim().toLowerCase())
                     .filter(Boolean);
-                
+
                 if (userFilters.length === 0) return false;
 
                 const rawTag = row.tag.toLowerCase();
                 const humanTag = humanizeTagName(row.tag).toLowerCase();
-                
+
                 return userFilters.some(f => rawTag.includes(f) || humanTag.includes(f));
             }
-            
+
             return true;
         });
 
@@ -2818,8 +2343,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         filteredData.forEach(row => {
-            const statusClass = row.match ? 'success' : 'danger';
-            const statusText = row.match ? 'TRUE' : 'FALSE';
+            const statusClass = row.match ? APP_CONSTANTS.STATUS.SUCCESS : APP_CONSTANTS.STATUS.DANGER;
+            const statusText = row.match ? APP_CONSTANTS.STATUS.TRUE : APP_CONSTANTS.STATUS.FALSE;
             const rowClass = row.match ? '' : 'style="background: rgba(239, 68, 68, 0.03);"';
 
             const cleanVal1 = String(row.val1 || '').trim().replace(/^["']|["']$/g, '');
@@ -2995,7 +2520,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     row.sku1,
                     row.sku2,
                     "", // Target
-                    "No", // Resolved
+                    APP_CONSTANTS.STATUS.NO, // Resolved
                     "", // Resolution
                     "", // Image + Tags Updated?
                     "", // Note - Details (TH AIPN - Conso)
@@ -3054,13 +2579,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const getIssues = (sku, data) => {
             if (!data) return [];
             const issues = [];
-            if (data.IsKitSKU) issues.push({ type: 'Kit', reason: 'SKU is Kit or Composite', note: `SKU ${sku} is a KitPrSKU`, bothNote: 'Both SKUs are KitPrSKU' });
-            if (data.IsCompositeSKU) issues.push({ type: 'Composite', reason: 'SKU is Kit or Composite', note: `SKU ${sku} is a CompositePrSKU`, bothNote: 'Both SKUs are CompositePrSKU' });
-            if (data.Trad_Class_Excl) issues.push({ type: 'Class', reason: 'Excluded Class', note: 'Both SKUs belong to an Excluded Class (Class ID: )', bothNote: 'Both SKUs belong to an Excluded Class (Class ID: )' });
-            if (data.Trad_Supplier_Excl) issues.push({ type: 'Supplier', reason: 'Excluded Supplier', note: '', bothNote: '' });
-            if (data.Brand_Auth_Exclusion) issues.push({ type: 'Brand', reason: '', note: '', bothNote: '' });
-            if (data.SKU_Exclusion) issues.push({ type: 'SKU', reason: 'Excluded SKU', note: `SKU ${sku} is an Excluded SKU`, bothNote: 'Both SKUs are Excluded SKU' });
-            if (data.Supplier_Part_Exclusion) issues.push({ type: 'Part', reason: 'Excluded Supplier Part', note: '', bothNote: '' });
+            if (data.IsKitSKU) issues.push({ type: APP_CONSTANTS.ISSUE_TYPE.KIT, reason: APP_CONSTANTS.REASON.SKU_IS_KIT_OR_COMPOSITE, note: `SKU ${sku} is a KitPrSKU`, bothNote: APP_CONSTANTS.REASON.BOTH_KIT });
+            if (data.IsCompositeSKU) issues.push({ type: APP_CONSTANTS.ISSUE_TYPE.COMPOSITE, reason: APP_CONSTANTS.REASON.SKU_IS_KIT_OR_COMPOSITE, note: `SKU ${sku} is a CompositePrSKU`, bothNote: APP_CONSTANTS.REASON.BOTH_COMPOSITE });
+            if (data.Trad_Class_Excl) issues.push({ type: APP_CONSTANTS.ISSUE_TYPE.CLASS, reason: APP_CONSTANTS.REASON.EXCLUDED_CLASS, note: APP_CONSTANTS.REASON.BOTH_EXCLUDED_CLASS, bothNote: APP_CONSTANTS.REASON.BOTH_EXCLUDED_CLASS });
+            if (data.Trad_Supplier_Excl) issues.push({ type: APP_CONSTANTS.ISSUE_TYPE.SUPPLIER, reason: APP_CONSTANTS.REASON.EXCLUDED_SUPPLIER, note: '', bothNote: '' });
+            if (data.Brand_Auth_Exclusion) issues.push({ type: APP_CONSTANTS.ISSUE_TYPE.BRAND, reason: '', note: '', bothNote: '' });
+            if (data.SKU_Exclusion) issues.push({ type: APP_CONSTANTS.ISSUE_TYPE.SKU, reason: APP_CONSTANTS.REASON.EXCLUDED_SKU, note: `SKU ${sku} is an Excluded SKU`, bothNote: APP_CONSTANTS.REASON.BOTH_EXCLUDED_SKU });
+            if (data.Supplier_Part_Exclusion) issues.push({ type: APP_CONSTANTS.ISSUE_TYPE.PART, reason: APP_CONSTANTS.REASON.EXCLUDED_SUPPLIER_PART, note: '', bothNote: '' });
             return issues;
         };
 
@@ -3141,8 +2666,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!result.isClean) {
             const reasonBadge = document.createElement('span');
-            reasonBadge.className = 'sku-tag danger';
-            reasonBadge.textContent = result.reason || 'No Reason Specified';
+            reasonBadge.className = `sku-tag ${APP_CONSTANTS.STATUS.DANGER}`;
+            reasonBadge.textContent = result.reason || APP_CONSTANTS.REASON.NONE_SPECIFIED;
             tagContainer.appendChild(reasonBadge);
 
             const noteDiv = document.createElement('div');
@@ -3158,7 +2683,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cleanBadge.className = 'sku-tag success';
             cleanBadge.style.background = '#f0fdf4';
             cleanBadge.style.color = '#16a34a';
-            cleanBadge.textContent = 'No Exclusions';
+            cleanBadge.textContent = APP_CONSTANTS.REASON.NO_EXCLUSIONS;
             tagContainer.appendChild(cleanBadge);
 
             leftContent.appendChild(tagContainer);
@@ -3379,38 +2904,38 @@ Example: If names match 100%, desc 85% (minor rephrase), bullets 95% (same featu
                     for (let i = 0; i < Math.min(rawRows.length, 15); i++) {
                         const row = rawRows[i];
                         if (!row || !Array.isArray(row)) continue;
-                        
+
                         let tempMap = { sku: -1, part: -1, name: -1, desc: -1, bullets: [] };
                         let matchCount = 0;
-                        
+
                         row.forEach((cell, idx) => {
                             const s = String(cell || "").toLowerCase().replace(/\s+/g, ' ').trim();
                             if (!s) return;
-                            
+
                             // Essential: Listing ID
-                            if (s.includes('listing') || s.includes('prsku') || s === 'sku') { 
+                            if (s.includes('listing') || s.includes('prsku') || s === 'sku') {
                                 if (tempMap.sku === -1) { tempMap.sku = idx; matchCount++; }
-                            } 
+                            }
                             // Essential: MPN
-                            else if (s.includes('manufacturer') || s.includes('mpn') || s.includes('part number')) { 
+                            else if (s.includes('manufacturer') || s.includes('mpn') || s.includes('part number')) {
                                 if (tempMap.part === -1) { tempMap.part = idx; matchCount++; }
-                            } 
+                            }
                             // Marketing Description
-                            else if (s.includes('marketing copy') || s.includes('description') || s.includes('copy')) { 
+                            else if (s.includes('marketing copy') || s.includes('description') || s.includes('copy')) {
                                 if (tempMap.desc === -1) { tempMap.desc = idx; matchCount++; }
-                            } 
+                            }
                             // Feature Bullets (Can be multiple columns)
-                            else if (s.includes('bullet') || s.includes('feature')) { 
+                            else if (s.includes('bullet') || s.includes('feature')) {
                                 if (!tempMap.bullets.includes(idx)) {
-                                    tempMap.bullets.push(idx); 
+                                    tempMap.bullets.push(idx);
                                     matchCount++;
                                 }
-                            } 
+                            }
                             // Product Name
                             else if (s === 'product name') {
                                 if (tempMap.name === -1) { tempMap.name = idx; matchCount++; }
                             }
-                            else if ((s.includes('name') || s.includes('title') || s.includes('product')) && !s.includes('name on site')) { 
+                            else if ((s.includes('name') || s.includes('title') || s.includes('product')) && !s.includes('name on site')) {
                                 if (tempMap.name === -1) { tempMap.name = idx; matchCount++; }
                             }
                         });
@@ -3435,7 +2960,7 @@ Example: If names match 100%, desc 85% (minor rephrase), bullets 95% (same featu
                         for (let i = headerRowIdx + 1; i < rawRows.length; i++) {
                             const row = rawRows[i];
                             if (!row || row[colMap.sku] === undefined) continue;
-                            
+
                             const prSkuRaw = String(row[colMap.sku]).trim();
                             const prSku = prSkuRaw.toLowerCase();
                             if (!prSku) continue;
@@ -3629,7 +3154,7 @@ Example: If names match 100%, desc 85% (minor rephrase), bullets 95% (same featu
             const data2 = aiCatalogData.get(s2);
 
             if (!data1 || !data2) {
-                if (isAiCancelled) break; 
+                if (isAiCancelled) break;
                 const missing = [];
                 if (!data1) missing.push(input1);
                 if (!data2) missing.push(input2);
@@ -3762,9 +3287,9 @@ REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toU
 
             lines.forEach(line => {
                 if (line.trim().startsWith('|')) {
-                    if (!inTable) { 
-                        inTable = true; 
-                        tableHtml = "<div style='overflow-x: auto; margin: 15px 0;'><table style='border-collapse: collapse; width: 100%; font-size: 0.85rem;'><tbody>"; 
+                    if (!inTable) {
+                        inTable = true;
+                        tableHtml = "<div style='overflow-x: auto; margin: 15px 0;'><table style='border-collapse: collapse; width: 100%; font-size: 0.85rem;'><tbody>";
                         // Override header row completely
                         if (line.toLowerCase().includes('section')) {
                             tableHtml += `<tr>
@@ -3780,12 +3305,12 @@ REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toU
 
                     const rowCells = line.split('|').map(s => s.trim()).filter((s, i, arr) => i > 0 && i < arr.length - 1);
                     const cleanCells = rowCells.map(c => c.trim().replace(/^["']+|["']+$/g, ''));
-                    
+
                     if (cleanCells.length === 2 && !line.toLowerCase().includes('section')) {
                         // Dynamically inject the 2 middle columns using local data
                         const sectionName = cleanCells[0];
                         const simScore = cleanCells[1];
-                        
+
                         tableHtml += `<tr>
                             <td style="border: 1px solid var(--card-border); padding: 8px;">${sectionName}</td>
                             <td style="border: 1px solid var(--card-border); padding: 8px;">${getOrigText(sectionName, d1)}</td>
@@ -3793,8 +3318,8 @@ REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toU
                             <td style="border: 1px solid var(--card-border); padding: 8px; text-align: center; font-weight: 500;">${simScore}</td>
                         </tr>`;
                     } else if (cleanCells.length > 2 && !line.toLowerCase().includes('section')) {
-                         // Fallback in case old cached data with 4 columns is queried
-                         tableHtml += "<tr>" + cleanCells.map(c => `<td style="border: 1px solid var(--card-border); padding: 8px;">${c}</td>`).join('') + "</tr>";
+                        // Fallback in case old cached data with 4 columns is queried
+                        tableHtml += "<tr>" + cleanCells.map(c => `<td style="border: 1px solid var(--card-border); padding: 8px;">${c}</td>`).join('') + "</tr>";
                     }
                 } else {
                     if (inTable) {
@@ -3828,7 +3353,7 @@ REMINDER: In your response, replace "[SKU_ID_1_UPPER]" with "SKU ${data1.sku.toU
                     </tr>
                 </thead>
                 <tbody>`;
-            
+
             sections.forEach(sec => {
                 tableHtml += `<tr>
                     <td style="border: 1px solid var(--card-border); padding: 8px; font-weight: bold; background: var(--bg-alt);">${sec}</td>
