@@ -1160,7 +1160,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         resultRow.resolved = APP_CONSTANTS.STATUS.NO;
                         resultRow.reason = APP_CONSTANTS.REASON.DIFFERENT_COO;
                         const showNull = (v) => v === null ? "Null" : v;
-                        resultRow.note = `${showNull(val1)} / ${showNull(val2)}`;
+                        resultRow.note = `${showNull(val1)} & ${showNull(val2)}`;
                     }
                 }
                 cooExportData.push(resultRow);
