@@ -48,11 +48,11 @@
             <!-- <button class="nav-tab" data-tab="exclusion">
                 <i data-lucide="shield-alert"></i>
                 Exclusion Checker
-            </button> -->
+            </button>
             <button class="nav-tab" data-tab="ai">
                 <i data-lucide="sparkles"></i>
                 AI Analyst
-            </button>
+            </button> -->
             <button id="themeToggle" class="theme-toggle-btn" title="Toggle Light/Dark Mode">
                 <i data-lucide="moon"></i>
             </button>
@@ -865,6 +865,20 @@
                 <p class="subtitle">Use Gemini AI to analyze and compare SKU data.</p>
             </header>
 
+            <!-- AI Sub-Tabs Navigation -->
+            <div class="ai-sub-tabs-container">
+                <div class="ai-sub-tabs">
+                    <button class="ai-sub-tab active" data-subtab="review">
+                        <i data-lucide="git-compare"></i>
+                        Review GEM (Compare Pairs)
+                    </button>
+                    <button class="ai-sub-tab" data-subtab="clean">
+                        <i data-lucide="scissors"></i>
+                        Clean GEM (Single SKU)
+                    </button>
+                </div>
+            </div>
+
             <div id="aiTabHeader"
                 style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; padding: 1.5rem 1.5rem 0 1.5rem; max-width: 1400px; margin-left: auto; margin-right: auto; width: 100%;">
                 <span style="font-family: 'Outfit'; font-weight: 600; font-size: 1.1rem; color: var(--text-main);"><i
@@ -962,6 +976,34 @@
                                         <li>Optimized for audio ASR</li>
                                     </ul>
                                 </div>
+
+                                <div class="model-card" data-model="deepseek-v4-flash">
+                                    <div class="model-badge deepseek-flash">v4 flash</div>
+                                    <div class="model-icon">
+                                        <i data-lucide="sparkles"></i>
+                                    </div>
+                                    <h4>DeepSeek V4 Flash</h4>
+                                    <p>DeepSeek's highly efficient, ultra-fast intelligence model</p>
+                                    <ul class="model-features">
+                                        <li>Extremely rapid response</li>
+                                        <li>Optimized for high concurrency</li>
+                                        <li>Exceptional cost efficiency</li>
+                                    </ul>
+                                </div>
+
+                                <div class="model-card" data-model="deepseek-v4-pro">
+                                    <div class="model-badge deepseek-pro">v4 pro</div>
+                                    <div class="model-icon">
+                                        <i data-lucide="cpu"></i>
+                                    </div>
+                                    <h4>DeepSeek V4 Pro</h4>
+                                    <p>DeepSeek's premier pro-tier model with advanced reasoning capabilities</p>
+                                    <ul class="model-features">
+                                        <li>Deep reasoning logic</li>
+                                        <li>Complex analytical tasks</li>
+                                        <li>State-of-the-art coding abilities</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -997,9 +1039,28 @@
                                             style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Change</button>
                                 </div>
                             </div>
-                            <label
-                                style="font-size: 0.85rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">System
-                                Prompt (Instructions)</label>
+                            <!-- Option Mapper upload for AI Analyst -->
+                            <div class="file-upload-wrapper mb-1" id="aiOptionMapContainer" style="display: none; margin-top: 1rem; margin-bottom: 1rem;">
+                                <input type="file" id="aiOptionMapInput" accept=".csv, .xlsx, .xls" />
+                                <label for="aiOptionMapInput" class="file-label" id="aiOptionMapLabel">
+                                    <i data-lucide="upload-cloud"></i>
+                                    <span>Upload Option Excel (Optional for Clean GEM)</span>
+                                </label>
+                                <div id="aiOptionMapInfo" class="file-info-card"
+                                    style="display: none; background: #faf5ff; border-color: #e9d5ff;">
+                                    <div class="file-icon-box" style="background: #a855f7;">
+                                        <i data-lucide="file-spreadsheet"></i>
+                                    </div>
+                                    <div class="file-details">
+                                        <span id="aiOptionMapName" class="file-name">filename.xlsx</span>
+                                        <span id="aiOptionMapMeta" class="file-meta">0 variants loaded</span>
+                                    </div>
+                                    <button id="changeAiOptionMapBtn" class="change-file-btn"><i data-lucide="refresh-ccw"
+                                            style="width: 14px; height: 14px; display: inline-block; vertical-align: text-bottom; margin-right: 4px;"></i>Change</button>
+                                </div>
+                            </div>
+                            <label id="aiPromptLabel"
+                                style="font-size: 0.85rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">System Prompt (Review GEM)</label>
                             <textarea id="aiPromptInput" class="premium-textarea"
                                 style="height: 350px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace;"></textarea>
                         </div>
@@ -1008,11 +1069,10 @@
                         <div class="glass-card" id="aiBatchSection">
                             <div class="header-title mb-1">
                                 <i data-lucide="cpu"></i>
-                                <h3>2. Batch Analysis</h3>
+                                <h3 id="aiBatchTitle">2. Batch Analysis (Pairs)</h3>
                             </div>
-                            <label
-                                style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">Paste
-                                SKU pairs to analyze (comma or space/tab separated)</label>
+                            <label id="aiBatchLabel"
+                                style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">Paste SKU pairs to analyze (comma or space/tab separated)</label>
                             <textarea id="aiBatchInput" class="premium-textarea"
                                 placeholder="SKU-A, SKU-B&#10;SKU-C, SKU-D" style="height: 350px;"></textarea>
                             <div class="controls mt-1" style="display: flex; gap: 0.5rem;">
@@ -1052,23 +1112,24 @@
                         </div>
 
                         <!-- Row 2: Lookup (Full Width) -->
-                        <div class="glass-card" style="grid-column: span 2;">
-                            <div class="header-title mb-1">
+                        <div class="glass-card" style="grid-column: span 2; position: relative;">
+                            <div class="ai-sticky-lookup-bar">
+                                <div class="header-title mb-1">
                                 <i data-lucide="search"></i>
-                                <h3>3. Query Results</h3>
+                                <h3 id="aiQueryTitle">3. Query Results (Pairs)</h3>
                             </div>
-                            <label
-                                style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">Paste
-                                a SKU pair to lookup result</label>
+                            <label id="aiQueryLabel"
+                                style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">Paste a SKU pair to lookup result</label>
                             <textarea id="aiQueryInput" class="premium-textarea" placeholder="SKU-A, SKU-B"
                                 style="height: 80px;"></textarea>
-                            <div class="controls mt-1" style="display: flex; gap: 0.5rem;">
-                                <button id="aiQueryBtn" class="btn primary"
-                                    style="flex: 1; background: #8b5cf6; border-color: #8b5cf6;">
-                                    <i data-lucide="search"></i> Lookup
-                                </button>
-                                <button id="aiQueryClearBtn" class="btn secondary"><i data-lucide="eraser"></i>
-                                    Clear</button>
+                                <div class="controls mt-1" style="display: flex; gap: 0.5rem;">
+                                    <button id="aiQueryBtn" class="btn primary"
+                                        style="flex: 1; background: #8b5cf6; border-color: #8b5cf6;">
+                                        <i data-lucide="search"></i> Lookup
+                                    </button>
+                                    <button id="aiQueryClearBtn" class="btn secondary"><i data-lucide="eraser"></i>
+                                        Clear</button>
+                                </div>
                             </div>
                             <div id="aiQueryResult" class="mt-2 text-content"
                                 style="padding: 1rem; background: var(--bg-main); border-radius: 12px; border: 1px solid var(--card-border); min-height: 250px; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;">
@@ -1099,6 +1160,21 @@
                                 </div>
                                 <p style="font-size: 0.7rem; color: var(--text-dim); line-height: 1.3;">Tip: Export and
                                     share this file with teammates to avoid paying for the same SKU analysis twice.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Row 3: Export Cleaned Data (Full Width) -->
+                        <div class="glass-card" id="aiExportCleanedCard" style="grid-column: span 2; display: none;">
+                            <div class="header-title mb-1">
+                                <i data-lucide="download"></i>
+                                <h3>4. Export Cleaned Data</h3>
+                            </div>
+                            <label style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 0.5rem; display: block;">Paste SKUs to export (comma or space/tab separated)</label>
+                            <textarea id="aiSpecificExportInput" class="premium-textarea" placeholder="SKU1, SKU2, SKU3" style="height: 100px;"></textarea>
+                            <div class="controls mt-1" style="display: flex; gap: 0.5rem;">
+                                <button id="aiSpecificExportBtn" class="btn primary" style="flex: 1; background: #10b981; border-color: transparent;">
+                                    <i data-lucide="file-spreadsheet"></i> Check & Export CSV
+                                </button>
                             </div>
                         </div>
                     </div>

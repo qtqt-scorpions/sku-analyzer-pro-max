@@ -1924,7 +1924,7 @@ textarea:focus {
 
 .model-selection-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1.25rem;
     margin-top: 0.5rem;
 }
@@ -1988,6 +1988,16 @@ textarea:focus {
     color: #15803d;
 }
 
+.model-badge.deepseek-flash {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.model-badge.deepseek-pro {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
+
 .dark-theme .model-badge.pro {
     background: #4c1d95;
     color: #ddd6fe;
@@ -2001,6 +2011,16 @@ textarea:focus {
 .dark-theme .model-badge.lite {
     background: #064e3b;
     color: #bbf7d0;
+}
+
+.dark-theme .model-badge.deepseek-flash {
+    background: #1e3a8a;
+    color: #93c5fd;
+}
+
+.dark-theme .model-badge.deepseek-pro {
+    background: #4c1d95;
+    color: #ddd6fe;
 }
 
 .model-icon {
@@ -2025,6 +2045,16 @@ textarea:focus {
 
 .model-card[data-model*="lite"] .model-icon {
     background: #10b981;
+    color: white;
+}
+
+.model-card[data-model*="deepseek-v4-flash"] .model-icon {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+}
+
+.model-card[data-model*="deepseek-v4-pro"] .model-icon {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
     color: white;
 }
 
@@ -2170,4 +2200,79 @@ textarea:focus {
 #aiProcessBatchBtn i {
     width: 20px !important;
     height: 20px !important;
+}
+
+/* Floating Sticky Query Results Lookup Bar */
+.ai-sticky-lookup-bar {
+    position: sticky;
+    top: 66px; /* Sticks right below the 58px sticky navigation .app-nav */
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 1.5rem 1.75rem 1rem 1.75rem;
+    z-index: 90;
+    margin: -1.75rem -1.75rem 1rem -1.75rem;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    border-bottom: 1px dashed var(--card-border);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark-theme .ai-sticky-lookup-bar {
+    background: #1e293b;
+    border-bottom: 1px dashed #334155;
+}
+
+/* AI Analyst Sub-tabs */
+.ai-sub-tabs-container {
+    max-width: 1400px;
+    margin: 0 auto 2rem auto;
+    padding: 0 1.5rem;
+}
+
+.ai-sub-tabs {
+    display: flex;
+    gap: 2.5rem;
+    border-bottom: 2px solid var(--card-border);
+    padding-bottom: 0.25rem;
+}
+
+.ai-sub-tab {
+    background: none;
+    border: none;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    position: relative;
+    padding: 0.75rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.3s ease;
+}
+
+.ai-sub-tab:hover {
+    color: var(--text-main);
+}
+
+.ai-sub-tab i {
+    width: 18px;
+    height: 18px;
+}
+
+.ai-sub-tab.active {
+    color: var(--primary);
+}
+
+.ai-sub-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 10px 10px 0 0;
 }
