@@ -1159,11 +1159,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (coos1.length > 1 || coos2.length > 1) {
                     resultRow.resolved = APP_CONSTANTS.STATUS.NO;
                     resultRow.reason = APP_CONSTANTS.REASON.DIFFERENT_COO;
-                    resultRow.note = `${sku1}: ${cooStr1} & ${sku2}: ${cooStr2}`;
+                    resultRow.note = `SKU ${sku1}: ${cooStr1} & SKU ${sku2}: ${cooStr2}`;
                 } else if (cooStr1 !== cooStr2) {
                     resultRow.resolved = APP_CONSTANTS.STATUS.NO;
                     resultRow.reason = APP_CONSTANTS.REASON.DIFFERENT_COO;
-                    resultRow.note = `${sku1}: ${cooStr1} & ${sku2}: ${cooStr2}`;
+                    resultRow.note = `SKU ${sku1}: ${cooStr1} & SKU ${sku2}: ${cooStr2}`;
                 }
                 cooExportData.push(resultRow);
             }
